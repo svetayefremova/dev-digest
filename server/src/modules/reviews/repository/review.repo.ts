@@ -54,11 +54,13 @@ export async function insertFindings(
   return rows;
 }
 
-/** Reviews for a PR (newest first), each with its findings. */
+/** Reviews for a PR (newest first), each with its findings and the cost of
+ *  the agent_runs row that produced it (via review.runId; null if the run
+ *  has no cost, e.g. a provider without pricing data, or no linked run). */
 export async function reviewsForPull(
   db: Db,
   prId: string,
-): Promise<{ review: ReviewRow; findings: FindingRow[] }[]> {
+): Promise<{ review: ReviewRow; findings: FindingRow[]; costUsd: number | null }[]> {
   const reviews = await db
     .select()
     .from(t.reviews)
@@ -67,9 +69,19 @@ export async function reviewsForPull(
   if (reviews.length === 0) return [];
   const ids = reviews.map((r) => r.id);
   const findings = await db.select().from(t.findings).where(inArray(t.findings.reviewId, ids));
+  const runIds = reviews.map((r) => r.runId).filter((id): id is string => id != null);
+  const costByRunId = new Map<string, number | null>();
+  if (runIds.length > 0) {
+    const runs = await db
+      .select({ id: t.agentRuns.id, costUsd: t.agentRuns.costUsd })
+      .from(t.agentRuns)
+      .where(inArray(t.agentRuns.id, runIds));
+    for (const r of runs) costByRunId.set(r.id, r.costUsd);
+  }
   return reviews.map((review) => ({
     review,
     findings: findings.filter((f) => f.reviewId === review.id),
+    costUsd: review.runId ? (costByRunId.get(review.runId) ?? null) : null,
   }));
 }
 
