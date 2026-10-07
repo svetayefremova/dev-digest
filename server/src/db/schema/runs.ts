@@ -1,7 +1,8 @@
-import { pgTable, uuid, text, integer, jsonb, timestamp, numeric, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, integer, jsonb, timestamp, numeric, index, primaryKey } from 'drizzle-orm/pg-core';
 import { workspaces } from './core';
 import { agents } from './agents';
 import { pullRequests } from './pulls';
+import { skills } from './skills';
 
 // ============================================================ Observability
 
@@ -48,6 +49,30 @@ export const runTraces = pgTable('run_traces', {
     .references(() => agentRuns.id, { onDelete: 'cascade' }),
   trace: jsonb('trace').notNull(),
 });
+
+/**
+ * The skill blocks that actually went into one run's prompt, in prompt order.
+ * A snapshot, not a live link: name/version/tokens are frozen at run time and
+ * the row outlives the skill (`skill_id` goes null when the skill is deleted).
+ * Skill stats attribute runs — and their findings — to skills through this.
+ */
+export const agentRunSkills = pgTable(
+  'agent_run_skills',
+  {
+    runId: uuid('run_id')
+      .notNull()
+      .references(() => agentRuns.id, { onDelete: 'cascade' }),
+    skillId: uuid('skill_id').references(() => skills.id, { onDelete: 'set null' }),
+    skillName: text('skill_name').notNull(),
+    skillVersion: integer('skill_version').notNull(),
+    tokens: integer('tokens').notNull(),
+    order: integer('order').notNull(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.runId, t.order] }),
+    skillIdx: index('agent_run_skills_skill_idx').on(t.skillId),
+  }),
+);
 
 export const multiAgentRuns = pgTable(
   'multi_agent_runs',
