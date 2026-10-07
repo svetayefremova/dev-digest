@@ -15,6 +15,9 @@ const RepoCtx = React.createContext<{
   reposLoaded: boolean;
 }>({ repoId: null, setRepoId: () => {}, repos: [], activeRepo: null, reposLoaded: false });
 
+/** Stable reference so `list` doesn't become a new array every render while `repos` is still loading. */
+const EMPTY_REPOS: Repo[] = [];
+
 function repoIdFromPath(pathname: string | null): string | null {
   if (!pathname) return null;
   const m = pathname.match(/^\/repos\/([^/]+)/);
@@ -43,16 +46,21 @@ export function RepoProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const list = repos ?? [];
+  const list = repos ?? EMPTY_REPOS;
   const fromPath = repoIdFromPath(pathname);
   const repoId = fromPath ?? stored ?? list[0]?.id ?? null;
   const activeRepo = list.find((r) => r.id === repoId) ?? null;
 
-  return (
-    <RepoCtx.Provider value={{ repoId, setRepoId, repos: list, activeRepo, reposLoaded }}>
-      {children}
-    </RepoCtx.Provider>
+  // Memoized so every consumer in the tree (useActiveRepo/useRepoNotFound)
+  // doesn't re-render on every navigation — only when one of these actually
+  // changes. This provider wraps the whole app, so an unmemoized object
+  // literal here re-renders everything on every route change.
+  const value = React.useMemo(
+    () => ({ repoId, setRepoId, repos: list, activeRepo, reposLoaded }),
+    [repoId, setRepoId, list, activeRepo, reposLoaded],
   );
+
+  return <RepoCtx.Provider value={value}>{children}</RepoCtx.Provider>;
 }
 
 export function useActiveRepo() {

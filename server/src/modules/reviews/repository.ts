@@ -181,6 +181,32 @@ export class ReviewRepository {
     return runRepo.saveRunTrace(this.db, runId, trace);
   }
 
+  /**
+   * Atomically persist a completed run: the review + its findings, the PR's
+   * last-reviewed marker, the agent_runs completion row, and the run trace.
+   * One transaction so a crash mid-write can't leave a review visible on the
+   * PR page while its agent_runs row still reads 'running' (and then gets
+   * reaped to 'failed' on next boot) — or any other partial combination.
+   */
+  async persistRunOutcome(params: {
+    review: Parameters<typeof reviewRepo.insertReview>[1];
+    findings: Finding[];
+    prId: string;
+    headSha: string;
+    runId: string;
+    completeAgentRun: Parameters<typeof runRepo.completeAgentRun>[2];
+    trace: RunTrace;
+  }): Promise<{ review: ReviewRow; findings: FindingRow[] }> {
+    return this.db.transaction(async (tx) => {
+      const review = await reviewRepo.insertReview(tx, params.review);
+      const findingRows = await reviewRepo.insertFindings(tx, review.id, params.findings);
+      await pullRepo.markReviewed(tx, params.prId, params.headSha);
+      await runRepo.completeAgentRun(tx, params.runId, params.completeAgentRun);
+      await runRepo.saveRunTrace(tx, params.runId, params.trace);
+      return { review, findings: findingRows };
+    });
+  }
+
   getRunTrace(runId: string): Promise<RunTrace | undefined> {
     return runRepo.getRunTrace(this.db, runId);
   }

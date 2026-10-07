@@ -78,6 +78,20 @@
       "when": 1791008014949,
       "tag": "0010_parallel_lake",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791317130063,
+      "tag": "0011_fluffy_cerebro",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791317711922,
+      "tag": "0012_bright_enchantress",
+      "breakpoints": true
     }
   ]
 }

@@ -2,7 +2,7 @@
    GET /repos/:id/pulls (F1). Filters/sort live in query (?status&sort). */
 "use client";
 
-import React from "react";
+import { Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
@@ -24,7 +24,9 @@ import { FilterBar } from "./_components/FilterBar";
 /** Open PRs carry a derived review status; everything else is merged/closed. */
 const OPEN_STATUSES = new Set(["needs_review", "reviewed", "stale"]);
 
-export default function PullsPage() {
+/* useSearchParams() opts this route out of static rendering unless wrapped in
+   its own Suspense boundary (Next.js requirement) — see the default export below. */
+function PullsPageInner() {
   const t = useTranslations("prReview");
   const params = useParams<{ repoId: string }>();
   const repoId = params.repoId;
@@ -35,16 +37,23 @@ export default function PullsPage() {
   const { data: pulls, isLoading, isError, error, refetch } = usePulls(repoId);
   const refresh = useRefreshRepo();
 
-  // Default to "needs review" — the most actionable filter on open.
-  const status = search.get("status") ?? "needs_review";
-  const setStatus = (k: string) => {
+  // Filters live in the URL (not useState) so a reload or a shared link keeps
+  // the same status/search/sort instead of silently resetting them.
+  const setParam = (key: string, value: string) => {
     const sp = new URLSearchParams(search.toString());
-    sp.set("status", k); // always explicit so "all" sticks over the needs_review default
+    sp.set(key, value); // always explicit so it sticks over the default below
     router.replace(`/repos/${repoId}/pulls?${sp.toString()}`);
   };
 
-  const [query, setQuery] = React.useState("");
-  const [sort, setSort] = React.useState("newest");
+  // Default to "needs review" — the most actionable filter on open.
+  const status = search.get("status") ?? "needs_review";
+  const setStatus = (k: string) => setParam("status", k);
+
+  const query = search.get("q") ?? "";
+  const setQuery = (q: string) => setParam("q", q);
+
+  const sort = search.get("sort") ?? "newest";
+  const setSort = (s: string) => setParam("sort", s);
 
   const q = query.trim().toLowerCase();
   const filtered = (pulls ?? [])
@@ -131,5 +140,13 @@ export default function PullsPage() {
         )}
       </div>
     </AppShell>
+  );
+}
+
+export default function PullsPage() {
+  return (
+    <Suspense fallback={null}>
+      <PullsPageInner />
+    </Suspense>
   );
 }

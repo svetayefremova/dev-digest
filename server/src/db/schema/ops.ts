@@ -38,13 +38,17 @@ export const installedPlugins = pgTable('installed_plugins', {
   enabled: boolean('enabled').notNull().default(true),
 });
 
-export const digests = pgTable('digests', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  workspaceId: uuid('workspace_id')
-    .notNull()
-    .references(() => workspaces.id, { onDelete: 'cascade' }),
-  periodStart: timestamp('period_start', { withTimezone: true }),
-  periodEnd: timestamp('period_end', { withTimezone: true }),
-  bodyMd: text('body_md'),
-  deliveredTo: text('delivered_to'),
-});
+export const digests = pgTable(
+  'digests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    periodStart: timestamp('period_start', { withTimezone: true }),
+    periodEnd: timestamp('period_end', { withTimezone: true }),
+    bodyMd: text('body_md'),
+    deliveredTo: text('delivered_to'),
+  },
+  (t) => ({ wsIdx: index('digests_ws_idx').on(t.workspaceId) }),
+);

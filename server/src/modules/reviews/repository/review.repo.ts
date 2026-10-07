@@ -76,7 +76,8 @@ export async function reviewsForPull(
       .select({ id: t.agentRuns.id, costUsd: t.agentRuns.costUsd })
       .from(t.agentRuns)
       .where(inArray(t.agentRuns.id, runIds));
-    for (const r of runs) costByRunId.set(r.id, r.costUsd);
+    // numeric column reads back as a string — parse to the number callers expect.
+    for (const r of runs) costByRunId.set(r.id, r.costUsd === null ? null : Number(r.costUsd));
   }
   return reviews.map((review) => ({
     review,

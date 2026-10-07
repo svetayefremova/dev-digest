@@ -29,6 +29,7 @@ npm test               # vitest run
 
 - i18n strings live in `messages/en/`, not inline — don't hardcode UI copy.
 - `src/vendor/ui/` is vendored; check its own README before editing it.
+- **Styling convention: CSS variables + inline `style={{}}` objects (colocated `styles.ts` once a component has more than a couple), NOT Tailwind utility classes.** `src/vendor/ui/` is built entirely on CSS custom properties (`var(--accent)`, etc.) and every feature component follows that same pattern. Tailwind is configured but unused by convention — don't introduce Tailwind classes in new components, it would create two competing styling systems side by side.
 
 ## Read when
 

@@ -59,7 +59,8 @@ export async function listRunsForPull(
     duration_ms: run.durationMs,
     tokens_in: run.tokensIn,
     tokens_out: run.tokensOut,
-    cost_usd: run.costUsd,
+    // numeric column reads back as a string — parse to the number the RunSummary contract expects.
+    cost_usd: run.costUsd === null ? null : Number(run.costUsd),
     findings_count: run.findingsCount,
     grounding: run.grounding,
     ran_at: run.ranAt ? run.ranAt.toISOString() : null,
@@ -165,7 +166,8 @@ export async function completeAgentRun(
       durationMs: values.durationMs,
       tokensIn: values.tokensIn,
       tokensOut: values.tokensOut,
-      costUsd: values.costUsd,
+      // numeric column — Drizzle's data type for `numeric` is `string`.
+      costUsd: values.costUsd === null ? null : String(values.costUsd),
       findingsCount: values.findingsCount,
       grounding: values.grounding,
       score: values.score ?? null,

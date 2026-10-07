@@ -22,8 +22,11 @@ import { useActiveRepo, useRepoNotFound } from "../../../../../lib/repo-context"
 import { ApiError } from "../../../../../lib/api";
 import { githubPrUrl } from "../../../../../lib/github-urls";
 import type { FindingRecord } from "@devdigest/shared";
+import { s } from "./styles";
 
-export default function PRDetailPage() {
+/* useSearchParams() opts this route out of static rendering unless wrapped in
+   its own Suspense boundary (Next.js requirement) — see the default export below. */
+function PRDetailPageInner() {
   const params = useParams<{ repoId: string; number: string }>();
   const search = useSearchParams();
   const router = useRouter();
@@ -98,7 +101,7 @@ export default function PRDetailPage() {
   if (isLoading) {
     return (
       <AppShell crumb={crumb}>
-        <div style={{ padding: "28px 32px", display: "flex", flexDirection: "column", gap: 16, maxWidth: 1080, margin: "0 auto" }}>
+        <div style={s.loadingWrap}>
           <Skeleton height={28} width={420} />
           <Skeleton height={16} width={300} />
           <Skeleton height={200} />
@@ -133,7 +136,7 @@ export default function PRDetailPage() {
         onRunsStarted={() => invalidateActiveRuns()}
       />
 
-      <div style={{ padding: "24px 32px 44px", display: "flex", flexDirection: "column", gap: 24, maxWidth: 1080, margin: "0 auto" }}>
+      <div style={s.contentWrap}>
         {tab === "overview" && <OverviewTab prBody={pr.body} />}
 
         {tab === "findings" && (
@@ -181,5 +184,13 @@ export default function PRDetailPage() {
         />
       )}
     </AppShell>
+  );
+}
+
+export default function PRDetailPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <PRDetailPageInner />
+    </React.Suspense>
   );
 }
