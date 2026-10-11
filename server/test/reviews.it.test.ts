@@ -6,7 +6,7 @@ import { loadConfig } from '../src/platform/config.js';
 import { seed } from '../src/db/seed.js';
 import { MockLLMProvider, MockEmbedder, MockGitClient } from '../src/adapters/mocks.js';
 import * as t from '../src/db/schema.js';
-import { eq } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import type { Review } from '@devdigest/shared';
 
 const hasDocker = await dockerAvailable();
@@ -208,6 +208,87 @@ d('A2 reviews + agents (Testcontainers pg)', () => {
     expect(run!.status).toBe('done');
     expect(run!.findingsCount).toBe(1);
     expect(run!.grounding).toBe('1/2 passed');
+
+    await app.close();
+  });
+
+  it('skills: skills selected for the agent reach the prompt as separate ordered blocks; unselected or switched-off ones do not', async () => {
+    const app = await appWith(REVIEW_FIXTURE);
+    const { pr } = await setupRepoAndPr(pg.handle.db, workspaceId);
+    const post = (url: string, payload: object) => app.inject({ method: 'POST', url, payload });
+
+    const agent = (
+      await post('/agents', { name: 'Skilled', provider: 'openai', model: 'gpt-4.1', system_prompt: 'sec' })
+    ).json();
+    const skill = async (name: string, enabled = true) =>
+      (
+        await post('/skills', {
+          name,
+          description: `Use when ${name} applies.`,
+          type: 'rubric',
+          body: `Body of ${name}.`,
+          enabled,
+        })
+      ).json().id as string;
+    const first = await skill('skill-first');
+    const second = await skill('skill-second');
+    const linkOff = await skill('skill-link-disabled');
+    const globallyOff = await skill('skill-globally-disabled', false);
+
+    await post(`/agents/${agent.id}/skills`, {
+      skills: [
+        { skill_id: second, enabled: true },
+        { skill_id: linkOff, enabled: false },
+        { skill_id: globallyOff, enabled: true },
+        { skill_id: first, enabled: true },
+      ],
+    });
+
+    const run = async () => {
+      const res = await post(`/pulls/${pr.id}/review`, { agentId: agent.id });
+      const runId = res.json().runs[0].run_id as string;
+      await waitForPrRuns(pg.handle.db, pr.id);
+      const trace = (await app.inject({ method: 'GET', url: `/runs/${runId}/trace` })).json();
+      const runSkills = await pg.handle.db
+        .select()
+        .from(t.agentRunSkills)
+        .where(eq(t.agentRunSkills.runId, runId))
+        .orderBy(asc(t.agentRunSkills.order));
+      return { ...trace, runSkills };
+    };
+
+    const trace = await run();
+    const skills = trace.prompt_assembly.skills as string;
+    // One block per selected skill, in the order set on the agent. A skill
+    // switched off on the Skills page is left out even though the agent has it
+    // selected.
+    expect(skills).toBe(
+      '### Skill: skill-second\nUse when skill-second applies.\n\nBody of skill-second.' +
+        '\n\n' +
+        '### Skill: skill-first\nUse when skill-first applies.\n\nBody of skill-first.',
+    );
+    expect(skills).not.toContain('skill-link-disabled');
+    expect(skills).not.toContain('skill-globally-disabled');
+    expect(trace.prompt_assembly.user).toContain(`## Skills / rules\n${skills}`);
+    expect(trace.prompt_assembly.skills_tokens).toBeGreaterThan(0);
+    expect(trace.log.some((e: { msg: string }) => e.msg.includes('2 block(s)'))).toBe(true);
+
+    // The run recorded exactly the blocks its prompt carried, in prompt order.
+    expect(trace.runSkills).toEqual([
+      { runId: expect.any(String), skillId: second, skillName: 'skill-second', skillVersion: 1, tokens: expect.any(Number), order: 0 },
+      { runId: expect.any(String), skillId: first, skillName: 'skill-first', skillVersion: 1, tokens: expect.any(Number), order: 1 },
+    ]);
+    expect(trace.runSkills.every((r: { tokens: number }) => r.tokens > 0)).toBe(true);
+
+    // Switch every link off → no skills section at all.
+    await post(`/agents/${agent.id}/skills`, {
+      skills: [second, globallyOff, first].map((skill_id) => ({ skill_id, enabled: false })),
+    });
+    const bare = await run();
+    expect(bare.prompt_assembly.skills).toBeNull();
+    expect(bare.prompt_assembly.skills_tokens).toBeNull();
+    expect(bare.prompt_assembly.user).not.toContain('## Skills / rules');
+    expect(bare.runSkills).toEqual([]);
 
     await app.close();
   });

@@ -183,7 +183,8 @@ export class ReviewRepository {
 
   /**
    * Atomically persist a completed run: the review + its findings, the PR's
-   * last-reviewed marker, the agent_runs completion row, and the run trace.
+   * last-reviewed marker, the agent_runs completion row, the run trace, and
+   * the skill blocks the prompt carried (`agent_run_skills`).
    * One transaction so a crash mid-write can't leave a review visible on the
    * PR page while its agent_runs row still reads 'running' (and then gets
    * reaped to 'failed' on next boot) — or any other partial combination.
@@ -196,6 +197,8 @@ export class ReviewRepository {
     runId: string;
     completeAgentRun: Parameters<typeof runRepo.completeAgentRun>[2];
     trace: RunTrace;
+    /** Skill blocks that went into the prompt, in prompt order. */
+    skills?: runRepo.RunSkill[];
   }): Promise<{ review: ReviewRow; findings: FindingRow[] }> {
     return this.db.transaction(async (tx) => {
       const review = await reviewRepo.insertReview(tx, params.review);
@@ -203,6 +206,7 @@ export class ReviewRepository {
       await pullRepo.markReviewed(tx, params.prId, params.headSha);
       await runRepo.completeAgentRun(tx, params.runId, params.completeAgentRun);
       await runRepo.saveRunTrace(tx, params.runId, params.trace);
+      await runRepo.insertRunSkills(tx, params.runId, params.skills ?? []);
       return { review, findings: findingRows };
     });
   }

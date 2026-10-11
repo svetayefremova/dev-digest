@@ -30,8 +30,26 @@ function DropdownItem({ it, onClose }: { it: DropdownItemDef; onClose: () => voi
       }}
     >
       {I && <I size={14} style={{ color: "var(--text-muted)", flexShrink: 0 }} />}
-      <span style={{ flex: 1 }}>{it.label}</span>
-      {it.hint && <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{it.hint}</span>}
+      {/* One line each: the label keeps its width, a long hint gives way and truncates. */}
+      <span style={{ flex: "1 0 auto", maxWidth: "100%", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        {it.label}
+      </span>
+      {it.hint && (
+        <span
+          title={it.hint}
+          style={{
+            flex: "0 1 auto",
+            minWidth: 0,
+            fontSize: 12,
+            color: "var(--text-muted)",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {it.hint}
+        </span>
+      )}
       {it.onRemove && (
         <span
           role="button"

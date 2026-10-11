@@ -11,6 +11,9 @@ import { useAgents } from "../../../../../../../lib/hooks/agents";
 import { useRunReview } from "../../../../../../../lib/hooks/reviews";
 import { DROPDOWN_WIDTH } from "./constants";
 
+/** `deepseek/deepseek-v4-flash` → `deepseek-v4-flash`. */
+const shortModel = (model: string) => model.split("/").pop() ?? model;
+
 export function RunReviewDropdown({
   prId,
   size = "sm",
@@ -55,7 +58,8 @@ export function RunReviewDropdown({
     ? all.map((a) => ({
         label: a.name,
         icon: "Cpu" as const,
-        hint: a.enabled ? a.model : `${a.model} · disabled`,
+        // Model without its vendor prefix; "disabled" leads so it survives truncation.
+        hint: a.enabled ? shortModel(a.model) : `disabled · ${shortModel(a.model)}`,
         onClick: () => kick({ agentId: a.id }),
       }))
     : [{ label: "No agents yet — create one", icon: "Plus", muted: true, onClick: () => router.push("/agents") }];

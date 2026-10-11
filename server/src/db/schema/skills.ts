@@ -1,4 +1,5 @@
-import { pgTable, uuid, text, integer, boolean, jsonb, primaryKey, index } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { pgTable, uuid, text, integer, boolean, jsonb, primaryKey, index, check } from 'drizzle-orm/pg-core';
 import { now } from './_shared';
 import { workspaces } from './core';
 
@@ -13,7 +14,7 @@ export const skills = pgTable(
     description: text('description').notNull(),
     type: text('type', { enum: ['rubric', 'convention', 'security', 'custom'] }).notNull(),
     source: text('source', {
-      enum: ['manual', 'imported_url', 'extracted', 'community'],
+      enum: ['manual', 'imported_file', 'imported_url', 'extracted', 'community'],
     }).notNull(),
     body: text('body').notNull(),
     enabled: boolean('enabled').notNull().default(true),
@@ -21,7 +22,16 @@ export const skills = pgTable(
     evidenceFiles: jsonb('evidence_files').$type<string[]>(),
     createdAt: now(),
   },
-  (t) => ({ wsIdx: index('skills_ws_idx').on(t.workspaceId) }),
+  (t) => ({
+    wsIdx: index('skills_ws_idx').on(t.workspaceId),
+    // Keeps the DB in step with the `source` enum above. Declared explicitly
+    // because some local databases already carry an older, narrower copy of this
+    // constraint (see migration 0014).
+    sourceCk: check(
+      'skills_source_ck',
+      sql`${t.source} in ('manual', 'imported_file', 'imported_url', 'extracted', 'community')`,
+    ),
+  }),
 );
 
 export const skillVersions = pgTable(
@@ -32,6 +42,8 @@ export const skillVersions = pgTable(
       .references(() => skills.id, { onDelete: 'cascade' }),
     version: integer('version').notNull(),
     body: text('body').notNull(),
+    /** What changed in this version — user-supplied, or a server default. */
+    message: text('message').notNull().default(''),
     createdAt: now(),
   },
   (t) => ({ pk: primaryKey({ columns: [t.skillId, t.version] }) }),

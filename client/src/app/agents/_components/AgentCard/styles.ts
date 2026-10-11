@@ -40,6 +40,13 @@ export const s = {
     textOverflow: "ellipsis",
   } satisfies CSSProperties,
   metaRow: { display: "flex", alignItems: "center", gap: 8 } satisfies CSSProperties,
+  footer: {
+    marginTop: 10,
+    paddingTop: 8,
+    borderTop: "1px solid var(--border)",
+    fontSize: 12,
+    color: "var(--text-muted)",
+  } satisfies CSSProperties,
   modelChip: (color: string): CSSProperties => ({
     fontSize: 12,
     fontWeight: 600,
@@ -47,5 +54,12 @@ export const s = {
     background: color + "1a",
     padding: "1px 8px",
     borderRadius: 4,
+    // A long model id truncates on one line instead of wrapping and pushing
+    // the skills badge out of the card.
+    minWidth: 0,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   }),
+  skillsBadge: { flexShrink: 0, marginLeft: "auto" } satisfies CSSProperties,
 } as const;

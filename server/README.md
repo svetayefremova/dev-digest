@@ -72,7 +72,9 @@ flowchart TB
     reviews["reviews<br/>/pulls/:id/review · /reviews · /findings/:id/(accept|dismiss)<br/>/runs/:id/(events|trace)"]
   end
   subgraph Agents["Agents"]
-    agents["agents<br/>/agents · /agents/:id"]
+    agents["agents<br/>/agents · /agents/:id · /agents/:id/skills"]
+    skills["skills<br/>/skills · /skills/:id · /skills/import/preview<br/>/skills/:id/versions · /versions/:version/restore · /skills/:id/stats"]
+    conventions["conventions<br/>/repos/:id/conventions · /extract · /status · /skill-draft · /skill<br/>/conventions/:id"]
   end
   subgraph Intel["Repo intelligence"]
     repoIntel["repo-intel<br/>/repos/:id/index-state · /resync"]

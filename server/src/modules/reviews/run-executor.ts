@@ -8,6 +8,7 @@ import type { ReviewRepository, FindingRow, PullRow, ReviewRow } from './reposit
 import { REVIEW_STRATEGY } from './constants.js';
 import { taskLine } from './helpers.js';
 import { loadDiff } from './diff-loader.js';
+import { formatSkillBlock } from '../skills/helpers.js';
 
 /** Thrown by a run when the user cancels it mid-flight (between map files). */
 export class RunCancelledError extends Error {
@@ -184,6 +185,24 @@ export class ReviewRunExecutor {
 
       const task = taskLine(pull) + rankNote;
 
+      // Skills — the agent's enabled skills (minus any switched off on the
+      // Skills page), in the order set in the Agent editor, each rendered as
+      // its own block. No enabled skills → section
+      // omitted and the prompt is identical to a skill-less agent's.
+      const skills = await runLog.step(
+        'Loading skills',
+        () => this.agents.enabledSkillsForRun(agent.id),
+        { kind: 'tool' },
+      );
+      const skillBlocks = skills.map(formatSkillBlock);
+      const skillsTokens =
+        skillBlocks.length > 0 ? this.container.tokenizer.count(skillBlocks.join('\n\n')) : null;
+      runLog.info(
+        skillBlocks.length > 0
+          ? `Skills: ${skills.map((sk) => sk.name).join(', ')} — ${skillBlocks.length} block(s), +${skillsTokens} tokens`
+          : 'Skills: none enabled for this agent',
+      );
+
       // ---- Engine: assemble → single-pass → grounding -----------------------
       // The pure review pipeline lives in @devdigest/reviewer-core (shared with
       // the CI runner). The service owns only I/O: repo-intel context resolution
@@ -196,6 +215,7 @@ export class ReviewRunExecutor {
         // Per-agent review strategy (configured in the Agent editor); falls back
         // to the studio default. single-pass = whole diff in one call.
         strategy: agent.strategy ?? REVIEW_STRATEGY,
+        ...(skillBlocks.length > 0 ? { skills: skillBlocks } : {}),
         // T1.3 — pass the callers digest only when we built one. assemblePrompt
         // omits the section when this is empty/undefined.
         ...(callersDigest ? { callers: callersDigest } : {}),
@@ -238,7 +258,7 @@ export class ReviewRunExecutor {
           findings: keptFindings.length,
           grounding,
         },
-        prompt_assembly: outcome.assembly,
+        prompt_assembly: { ...outcome.assembly, skills_tokens: skillsTokens },
         tool_calls: outcome.chunks.map((c) => ({
           tool: 'review_file',
           args: c.label,
@@ -287,6 +307,13 @@ export class ReviewRunExecutor {
           error: null,
         },
         trace,
+        // One row per skill block the prompt actually carried, in prompt order.
+        skills: skills.map((sk, i) => ({
+          skillId: sk.id,
+          name: sk.name,
+          version: sk.version,
+          tokens: this.container.tokenizer.count(skillBlocks[i]!),
+        })),
       });
       runLog.info(`Run complete; persisted review ${review.id} with ${findingRows.length} finding(s)`);
       this.container.runBus.complete(runId);

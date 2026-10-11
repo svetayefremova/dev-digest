@@ -1,0 +1,41 @@
+import type { CSSProperties } from "react";
+
+export const s = {
+  body: { padding: 24 } satisfies CSSProperties,
+  banner: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "11px 14px",
+    marginBottom: 20,
+    borderRadius: 8,
+    background: "var(--accent-bg)",
+    fontSize: 13,
+    color: "var(--text-secondary)",
+  } satisfies CSSProperties,
+  bannerIcon: { color: "var(--accent)", flexShrink: 0 } satisfies CSSProperties,
+  bannerStrong: { color: "var(--text-primary)", fontWeight: 600 } satisfies CSSProperties,
+  bannerRepo: { color: "var(--accent-text)" } satisfies CSSProperties,
+  row: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 } satisfies CSSProperties,
+  agents: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+    maxHeight: 132,
+    overflowY: "auto",
+    padding: "12px 14px",
+    border: "1px solid var(--border)",
+    borderRadius: 8,
+  } satisfies CSSProperties,
+  noAgents: { fontSize: 13, color: "var(--text-muted)" } satisfies CSSProperties,
+  footer: { display: "flex", alignItems: "center", gap: 10 } satisfies CSSProperties,
+  savedAs: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    marginRight: "auto",
+    fontSize: 12,
+    color: "var(--text-muted)",
+  } satisfies CSSProperties,
+  loading: { padding: 24, display: "flex", flexDirection: "column", gap: 14 } satisfies CSSProperties,
+};

@@ -1,6 +1,7 @@
 ---
 name: pr-self-review
 description: Review all changes on the current branch before opening a PR — maps the diff to the relevant domain skills (UI skills for client/ files, backend/architecture skills for server/ and reviewer-core/ files), runs each on its matched files, normalizes severity, and blocks merge if any CRITICAL finding is found. Use before running `gh pr create`, before merging, or whenever the user asks for a "self review" / "PR review" / "review before PR". Also invoked headlessly by the PreToolUse hook that gates `gh pr create`/`gh pr merge`/`git push`.
+disable-model-invocation: true
 ---
 
 # PR Self Review

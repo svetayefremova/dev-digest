@@ -1,0 +1,26 @@
+{
+  "name": "Skills page: pick a skill from the list and land on its Config tab",
+  "description": "Loads /skills (list on the left, 'Select a skill' on the right), creates a skill through the Add Skill menu because a fresh seed has none, then reopens /skills, clicks the skill's card and confirms the editor opens on the Config tab (the default). Finally confirms the seeded Test Quality Reviewer agent is listed. Exercises the skills list, create and detail routes; no model call.",
+  "steps": [
+    { "cmd": ["open", "{BASE}/skills"], "label": "load the skills page" },
+    { "cmd": ["wait", "--url", "/skills"], "label": "skills route reached" },
+    { "cmd": ["wait", "--load", "networkidle"], "label": "skills fetch settles" },
+    { "cmd": ["wait", "--text", "Select a skill"], "label": "empty detail pane is visible" },
+    { "cmd": ["find", "role", "button", "click", "--name", "Add Skill"], "label": "open the Add Skill menu" },
+    { "cmd": ["find", "role", "button", "click", "--name", "Create skill"], "label": "choose Create skill" },
+    { "cmd": ["wait", "--text", "A reusable block of review instructions you can link to any agent."], "label": "create modal is open" },
+    { "cmd": ["fill", "input[placeholder='uncovered-branches']", "e2e-preview-skill"], "label": "name the skill" },
+    { "cmd": ["fill", "textarea.mono", "# E2E rule\n\nFlag every branch without a test."], "label": "write the skill body" },
+    { "cmd": ["find", "role", "button", "click", "--name", "Create skill"], "label": "submit the create form" },
+    { "cmd": ["wait", "--text", "Configuration"], "label": "new skill opens on the Config tab" },
+    { "cmd": ["open", "{BASE}/skills"], "label": "back to the skills list" },
+    { "cmd": ["wait", "--load", "networkidle"], "label": "skills fetch settles" },
+    { "cmd": ["wait", "--text", "Select a skill"], "label": "nothing is selected yet" },
+    { "cmd": ["find", "text", "e2e-preview-skill", "click"], "label": "click the skill card" },
+    { "cmd": ["wait", "--url", "/skills/"], "label": "skill detail route reached" },
+    { "cmd": ["wait", "--text", "Configuration"], "label": "editor opens on the Config tab" },
+    { "cmd": ["open", "{BASE}/agents"], "label": "load the agents page" },
+    { "cmd": ["wait", "--load", "networkidle"], "label": "agents fetch settles" },
+    { "cmd": ["wait", "--text", "Test Quality Reviewer"], "label": "seeded test-quality agent card is visible" }
+  ]
+}

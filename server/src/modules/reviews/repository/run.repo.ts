@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import type { Db } from '../../../db/client.js';
 import * as t from '../../../db/schema.js';
 import type { RunSummary, RunTrace } from '@devdigest/shared';
@@ -188,4 +188,32 @@ export async function saveRunTrace(db: Db, runId: string, trace: RunTrace): Prom
 export async function getRunTrace(db: Db, runId: string): Promise<RunTrace | undefined> {
   const [row] = await db.select().from(t.runTraces).where(eq(t.runTraces.runId, runId));
   return row ? (row.trace as RunTrace) : undefined;
+}
+
+/** One skill block as it went into a run's prompt (see `agent_run_skills`). */
+export interface RunSkill {
+  skillId: string;
+  name: string;
+  version: number;
+  tokens: number;
+}
+
+/**
+ * Record the skill blocks a run's prompt carried, in prompt order (array index
+ * = `order`). The skill id is resolved through a subquery so a skill deleted
+ * while the run was in flight stores NULL instead of failing the FK — and with
+ * it the whole run-outcome transaction.
+ */
+export async function insertRunSkills(db: Db, runId: string, skills: RunSkill[]): Promise<void> {
+  if (skills.length === 0) return;
+  await db.insert(t.agentRunSkills).values(
+    skills.map((sk, order) => ({
+      runId,
+      skillId: sql<string | null>`(select s.id from skills s where s.id = ${sk.skillId}::uuid)`,
+      skillName: sk.name,
+      skillVersion: sk.version,
+      tokens: sk.tokens,
+      order,
+    })),
+  );
 }

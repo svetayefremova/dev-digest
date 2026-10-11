@@ -23,6 +23,8 @@ Append-only log of engineering insights captured in `client/`. Written by the `e
 ## Recurring Errors & Fixes
 
 <!-- - 2026-XX-XX — error signature → root cause → fix (file:line) -->
+- 2026-10-06 — A page 500s in `next dev` with `Module not found: Can't resolve './contracts/findings.js'` (import trace ends at `src/vendor/shared/index.ts`) → root cause: a VALUE import from `@devdigest/shared` (e.g. `import { SkillType } from "@devdigest/shared"` to read `SkillType.options`). The vendored barrel re-exports with `.js` specifiers that only resolve for types, so only `import type` works in the client. `tsc --noEmit` and vitest both pass with the value import — only the Next bundler fails, so it surfaces at page load, not in CI checks. Fix: `import type` only, and restate any runtime list locally typed against the contract (`src/app/skills/_components/SkillsListView/constants.ts`).
+- 2026-10-06 — Correction to the entry above: the locally restated skill-type list moved with the Skills master-detail rework; it now lives at `src/app/skills/_components/SkillForm/constants.ts` (`SkillsListView/` was deleted).
 
 ## Session Notes
 

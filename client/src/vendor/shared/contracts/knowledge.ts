@@ -115,8 +115,17 @@ export type MemoryItem = z.infer<typeof MemoryItem>;
 export const SkillType = z.enum(['rubric', 'convention', 'security', 'custom']);
 export type SkillType = z.infer<typeof SkillType>;
 
-export const SkillSource = z.enum(['manual', 'imported_url', 'extracted', 'community']);
+export const SkillSource = z.enum(['manual', 'imported_file', 'imported_url', 'extracted', 'community']);
 export type SkillSource = z.infer<typeof SkillSource>;
+
+// Usage roll-up shown on a skill card. Percentages are whole numbers 0-100 and
+// null when there is no run data to compute them from (30-day window).
+export const SkillUsage = z.object({
+  agents: z.number().int(),
+  pull_pct: z.number().nullable(),
+  accept_pct: z.number().nullable(),
+});
+export type SkillUsage = z.infer<typeof SkillUsage>;
 
 export const Skill = z.object({
   id: z.string(),
@@ -128,8 +137,48 @@ export const Skill = z.object({
   enabled: z.boolean(),
   version: z.number().int(),
   evidence_files: z.array(z.string()).nullish(),
+  /** Exact token count of `body`, from the server tokenizer. */
+  body_tokens: z.number().int(),
+  /** Present on `GET /skills` only (one aggregate query for the whole list). */
+  usage: SkillUsage.optional(),
 });
 export type Skill = z.infer<typeof Skill>;
+
+// One row of a skill's body history. Only a body change creates a version;
+// restoring an old one appends a NEW version rather than rewriting history.
+export const SkillVersion = z.object({
+  version: z.number().int(),
+  message: z.string(),
+  body: z.string(),
+  created_at: z.string(),
+  current: z.boolean(),
+});
+export type SkillVersion = z.infer<typeof SkillVersion>;
+
+// Stats over the last 30 days of completed runs. Attribution is per RUN, not
+// per skill: a run that carried four skills credits its findings to all four.
+export const SkillStats = z.object({
+  used_by: z.number().int(),
+  pull_pct: z.number().nullable(),
+  accept_pct: z.number().nullable(),
+  findings_30d: z.number().int(),
+  agents: z.array(z.object({ id: z.string(), name: z.string() })),
+  by_category: z.array(z.object({ category: z.string(), count: z.number().int() })),
+});
+export type SkillStats = z.infer<typeof SkillStats>;
+
+// What an uploaded .md / .zip yields BEFORE anything is saved: the skill's text
+// core plus the archive entries that were deliberately left unread (scripts,
+// binaries, references). A skill is text only — nothing in an archive executes.
+export const SkillImportPreview = z.object({
+  name: z.string(),
+  description: z.string(),
+  type: SkillType,
+  body: z.string(),
+  source_file: z.string(),
+  skipped_files: z.array(z.string()),
+});
+export type SkillImportPreview = z.infer<typeof SkillImportPreview>;
 
 export const CommunitySkill = z.object({
   name: z.string(),
@@ -141,15 +190,72 @@ export const CommunitySkill = z.object({
 export type CommunitySkill = z.infer<typeof CommunitySkill>;
 
 // ---- Conventions ----
+// A candidate's category — kept in step with the `conventions_category_ck`
+// DB constraint.
+export const ConventionCategory = z.enum([
+  'naming',
+  'structure',
+  'errors',
+  'testing',
+  'imports',
+  'typing',
+  'api',
+  'general',
+]);
+export type ConventionCategory = z.infer<typeof ConventionCategory>;
+
+// pending = found, not decided · accepted = goes into the skill · rejected =
+// dismissed for good (never listed again, never in the skill).
+export const ConventionStatus = z.enum(['pending', 'accepted', 'rejected']);
+export type ConventionStatus = z.infer<typeof ConventionStatus>;
+
+// One house rule found in the repo. The evidence is verified in code against
+// the cloned files: `evidence_snippet` is cut from the real file at
+// `evidence_line`..`evidence_end_line` (1-based, inclusive), never model text.
 export const ConventionCandidate = z.object({
   id: z.string(),
+  category: ConventionCategory,
   rule: z.string(),
   evidence_path: z.string(),
+  evidence_line: z.number().int(),
+  evidence_end_line: z.number().int(),
   evidence_snippet: z.string(),
   confidence: z.number().min(0).max(1),
-  accepted: z.boolean(),
+  status: ConventionStatus,
 });
 export type ConventionCandidate = z.infer<typeof ConventionCandidate>;
+
+// A repo's last scan plus its candidates (rejected ones left out).
+// `scanned_at` is null until the repo has been scanned once.
+export const ConventionScan = z.object({
+  repo_id: z.string(),
+  sample_files: z.number().int(),
+  scanned_at: z.string().nullable(),
+  candidates: z.array(ConventionCandidate),
+});
+export type ConventionScan = z.infer<typeof ConventionScan>;
+
+// The skill the accepted candidates merge into, BEFORE anything is saved — the
+// user edits it in the create modal.
+export const ConventionSkillDraft = z.object({
+  name: z.string(),
+  description: z.string(),
+  type: SkillType,
+  body: z.string(),
+  /** Exact token count of `body`, from the server tokenizer. */
+  body_tokens: z.number().int(),
+  /** How many accepted candidates were merged. */
+  conventions: z.number().int(),
+});
+export type ConventionSkillDraft = z.infer<typeof ConventionSkillDraft>;
+
+// Result of saving that draft: the new skill and the agents it was linked to.
+export const ConventionSkillCreated = z.object({
+  skill_id: z.string(),
+  name: z.string(),
+  agent_ids: z.array(z.string()),
+});
+export type ConventionSkillCreated = z.infer<typeof ConventionSkillCreated>;
 
 // ---- Agents ----
 export const Provider = z.enum(['openai', 'anthropic', 'openrouter']);
@@ -167,6 +273,15 @@ export type ReviewStrategy = z.infer<typeof ReviewStrategy>;
 export const CiFailOn = z.enum(['never', 'critical', 'warning', 'any']);
 export type CiFailOn = z.infer<typeof CiFailOn>;
 
+// 30-day roll-up over an agent's completed runs. A metric with no data behind
+// it is null, not 0.
+export const AgentUsage = z.object({
+  runs: z.number().int(),
+  accept_pct: z.number().nullable(),
+  avg_cost_usd: z.number().nullable(),
+});
+export type AgentUsage = z.infer<typeof AgentUsage>;
+
 export const Agent = z.object({
   id: z.string(),
   name: z.string(),
@@ -182,6 +297,10 @@ export const Agent = z.object({
   // Inject repo-intel context (repo skeleton + callers + rank note) into this
   // agent's review prompt. Default on; gated again by the global flag.
   repo_intel: z.boolean().default(true),
+  // Number of skills linked AND enabled for this agent (list/detail reads only).
+  skill_count: z.number().int().optional(),
+  /** Present on `GET /agents` only (one aggregate query for the whole list). */
+  usage: AgentUsage.optional(),
 });
 export type Agent = z.infer<typeof Agent>;
 
@@ -189,5 +308,8 @@ export const AgentSkillLink = z.object({
   agent_id: z.string(),
   skill_id: z.string(),
   order: z.number().int(),
+  // Per-agent switch: a linked-but-disabled skill keeps its position but is left
+  // out of the prompt.
+  enabled: z.boolean(),
 });
 export type AgentSkillLink = z.infer<typeof AgentSkillLink>;

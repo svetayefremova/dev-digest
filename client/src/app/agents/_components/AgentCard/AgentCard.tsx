@@ -1,5 +1,5 @@
-/* AgentCard — model chip, skills count, enabled toggle. Stats are an A5 mount;
-   we render the provider/model + skill count here. */
+/* AgentCard — one row of the Agents sidebar: name, enabled toggle, description,
+   model chip + skills count, and a 30-day usage footer. */
 "use client";
 
 import React from "react";
@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { Icon, Badge, Toggle } from "@devdigest/ui";
 import type { Agent } from "@devdigest/shared";
 import { useDeleteAgent } from "../../../../lib/hooks/agents";
+import { formatCost } from "@/lib/format-cost";
 import { modelColor } from "./helpers";
 import { s } from "./styles";
 
@@ -26,6 +27,16 @@ export function AgentCard({
   const t = useTranslations("agents");
   const del = useDeleteAgent();
   const color = modelColor(ag.model);
+  const { usage } = ag;
+  // No footer before the first run; a metric with no data is left out, not shown as 0.
+  const footer =
+    usage && usage.runs > 0
+      ? [
+          t("card.runs", { count: usage.runs }),
+          usage.accept_pct != null ? t("card.accept", { pct: usage.accept_pct }) : null,
+          usage.avg_cost_usd != null ? t("card.avgCost", { cost: formatCost(usage.avg_cost_usd) }) : null,
+        ].filter((part): part is string => part !== null)
+      : [];
   return (
     <div onClick={onClick} style={s.card(!!active, ag.enabled)}>
       <div style={s.headerRow}>
@@ -60,15 +71,20 @@ export function AgentCard({
       </div>
       <div style={s.description}>{ag.description || t("card.noDescription")}</div>
       <div style={s.metaRow}>
-        <span className="mono" style={s.modelChip(color)}>
+        <span className="mono" style={s.modelChip(color)} title={ag.model}>
           {ag.model}
         </span>
         {skillCount != null && (
-          <Badge color="var(--text-secondary)" icon="Sparkles">
+          <Badge color="var(--text-secondary)" icon="Sparkles" style={s.skillsBadge}>
             {t("card.skillCount", { count: skillCount })}
           </Badge>
         )}
       </div>
+      {footer.length > 0 && (
+        <div className="tnum" style={s.footer}>
+          {footer.join(" · ")}
+        </div>
+      )}
     </div>
   );
 }
