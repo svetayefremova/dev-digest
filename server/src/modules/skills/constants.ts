@@ -16,12 +16,6 @@ export const DEFAULT_IMPORT_TYPE = 'custom';
 /** Longest version message ("What changed") a caller may supply. */
 export const MAX_VERSION_MESSAGE_LENGTH = 500;
 
-/** Stats / usage look back this many days, over completed runs only. */
-export const STATS_WINDOW_DAYS = 30;
-
-/** `agent_runs.status` of a run that finished and produced a review. */
-export const COMPLETED_RUN_STATUS = 'done';
-
 /** Finding categories, in the fixed order `SkillStats.by_category` reports them. */
 export const FINDING_CATEGORIES = ['bug', 'security', 'perf', 'style', 'test'] as const;
 

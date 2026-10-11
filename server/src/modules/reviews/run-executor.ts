@@ -185,8 +185,9 @@ export class ReviewRunExecutor {
 
       const task = taskLine(pull) + rankNote;
 
-      // Skills — the agent's enabled skills, in the order set in the Agent
-      // editor, each rendered as its own block. No enabled skills → section
+      // Skills — the agent's enabled skills (minus any switched off on the
+      // Skills page), in the order set in the Agent editor, each rendered as
+      // its own block. No enabled skills → section
       // omitted and the prompt is identical to a skill-less agent's.
       const skills = await runLog.step(
         'Loading skills',

@@ -10,6 +10,7 @@ import type {
 } from '@devdigest/shared';
 import { ValidationError } from '../../platform/errors.js';
 import { AgentsRepository, type SkillLinkInput } from './repository.js';
+import { pct } from '../_shared/stats.js';
 import { toAgentDto, toAgentVersionDto } from './helpers.js';
 
 /**
@@ -57,11 +58,19 @@ export class AgentsService {
   }
 
   async list(workspaceId: string): Promise<Agent[]> {
-    const [rows, counts] = await Promise.all([
+    const [rows, counts, usage] = await Promise.all([
       this.repo.list(workspaceId),
       this.repo.skillCounts(workspaceId),
+      this.repo.usageCounts(workspaceId),
     ]);
-    return rows.map((row) => toAgentDto(row, counts.get(row.id) ?? 0));
+    return rows.map((row) => {
+      const u = usage.get(row.id);
+      return toAgentDto(row, counts.get(row.id) ?? 0, {
+        runs: u?.runs ?? 0,
+        accept_pct: u ? pct(u.accepted, u.accepted + u.dismissed) : null,
+        avg_cost_usd: u?.avgCostUsd ?? null,
+      });
+    });
   }
 
   async get(workspaceId: string, id: string): Promise<Agent | undefined> {

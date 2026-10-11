@@ -3,7 +3,8 @@ import type { Db } from '../../db/client.js';
 import * as t from '../../db/schema.js';
 import type { SkillSource, SkillType } from '@devdigest/shared';
 import type { SkillRow, SkillVersionRow } from '../../db/rows.js';
-import { COMPLETED_RUN_STATUS, INITIAL_SKILL_VERSION, STATS_WINDOW_DAYS } from './constants.js';
+import { COMPLETED_RUN_STATUS, STATS_WINDOW_DAYS } from '../_shared/stats.js';
+import { INITIAL_SKILL_VERSION } from './constants.js';
 
 /**
  * Skills data-access. Owns `skills` and `skill_versions`; the `agent_skills`

@@ -216,6 +216,15 @@ export type ReviewStrategy = z.infer<typeof ReviewStrategy>;
 export const CiFailOn = z.enum(['never', 'critical', 'warning', 'any']);
 export type CiFailOn = z.infer<typeof CiFailOn>;
 
+// 30-day roll-up over an agent's completed runs. A metric with no data behind
+// it is null, not 0.
+export const AgentUsage = z.object({
+  runs: z.number().int(),
+  accept_pct: z.number().nullable(),
+  avg_cost_usd: z.number().nullable(),
+});
+export type AgentUsage = z.infer<typeof AgentUsage>;
+
 export const Agent = z.object({
   id: z.string(),
   name: z.string(),
@@ -233,6 +242,8 @@ export const Agent = z.object({
   repo_intel: z.boolean().default(true),
   // Number of skills linked AND enabled for this agent (list/detail reads only).
   skill_count: z.number().int().optional(),
+  /** Present on `GET /agents` only (one aggregate query for the whole list). */
+  usage: AgentUsage.optional(),
 });
 export type Agent = z.infer<typeof Agent>;
 

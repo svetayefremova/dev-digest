@@ -111,12 +111,12 @@ describe("SkillsTab", () => {
     expect(mutate.mock.calls[0]![0].skills).toHaveLength(4);
   });
 
-  it("does not mark a selected skill that is switched off on the Skills page — the agent still uses it", () => {
+  it("marks a selected skill that is switched off on the Skills page; the selection is kept", () => {
     skills = [skill("a", "alpha", { enabled: false })];
     links = [link("a", 0, true)];
     renderTab();
     expect(screen.getByRole("checkbox", { name: "Use alpha for this agent" })).toBeChecked();
-    expect(screen.queryByText("disabled")).not.toBeInTheDocument();
+    expect(screen.getByText("Off")).toBeInTheDocument();
   });
 
   it("with no skills in the workspace, points to the Skills page", () => {

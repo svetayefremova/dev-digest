@@ -8,7 +8,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button, Dropdown, ErrorState, Skeleton, Icon } from "@devdigest/ui";
-import { useSkills } from "../../../../lib/hooks/skills";
+import { useSkills, useUpdateSkill } from "../../../../lib/hooks/skills";
 import { SkillCard } from "../SkillCard";
 import { SkillFormModal } from "../SkillFormModal";
 import { ImportSkillModal } from "../ImportSkillModal";
@@ -22,6 +22,10 @@ export function SkillsSidebar({ activeId, tab }: { activeId?: string; tab?: stri
   const [search, setSearch] = React.useState("");
   const [creating, setCreating] = React.useState(false);
   const [importing, setImporting] = React.useState(false);
+  const update = useUpdateSkill();
+  // The switch being saved: shown at its requested value until the list
+  // refetches, so it doesn't snap back (a failure reverts it and toasts).
+  const toggling = update.isPending && update.variables.patch.enabled !== undefined ? update.variables : null;
 
   const list = filterSkills(skills ?? [], search);
   const loaded = !isLoading && !isError;
@@ -95,9 +99,10 @@ export function SkillsSidebar({ activeId, tab }: { activeId?: string; tab?: stri
         {list.map((sk) => (
           <SkillCard
             key={sk.id}
-            skill={sk}
+            skill={toggling?.id === sk.id ? { ...sk, enabled: !!toggling.patch.enabled } : sk}
             active={sk.id === activeId}
             onClick={() => router.push(tab ? `/skills/${sk.id}?tab=${tab}` : `/skills/${sk.id}`)}
+            onToggle={(enabled) => update.mutate({ id: sk.id, patch: { enabled } })}
           />
         ))}
       </div>

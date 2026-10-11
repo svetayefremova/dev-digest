@@ -88,6 +88,7 @@ export function VersionsTab({ skill }: { skill: Skill }) {
                 <Button
                   size="sm"
                   kind="ghost"
+                  icon="Eye"
                   aria-label={t("versions.diffAria", { version: v.version })}
                   onClick={() => setDiffOf(v)}
                 >

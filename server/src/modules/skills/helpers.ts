@@ -44,11 +44,6 @@ export function toSkillVersionDto(row: SkillVersionRow, currentVersion: number):
   };
 }
 
-/** `part / whole` as a whole-number percentage 0–100; null when there is no whole. */
-export function pct(part: number, whole: number): number | null {
-  return whole > 0 ? Math.round((part / whole) * 100) : null;
-}
-
 /**
  * Render one skill as its own block of the prompt's `## Skills / rules`
  * section. The description leads because it is the skill's interface — it tells

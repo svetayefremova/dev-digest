@@ -9,7 +9,8 @@ import type {
   SkillVersion,
 } from '@devdigest/shared';
 import { SkillsRepository, type SkillRow, type SkillUsageCounts } from './repository.js';
-import { pct, toSkillDto, toSkillVersionDto } from './helpers.js';
+import { pct } from '../_shared/stats.js';
+import { toSkillDto, toSkillVersionDto } from './helpers.js';
 import { buildImportPreview } from './import.js';
 import { FINDING_CATEGORIES, VERSION_MESSAGES } from './constants.js';
 

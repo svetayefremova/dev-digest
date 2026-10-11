@@ -2,6 +2,7 @@ import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { Db } from '../../db/client.js';
 import * as t from '../../db/schema.js';
 import type { CiFailOn, Provider, ReviewStrategy } from '@devdigest/shared';
+import { COMPLETED_RUN_STATUS, STATS_WINDOW_DAYS } from '../_shared/stats.js';
 import { DEFAULT_AGENT_DESCRIPTION, INITIAL_AGENT_VERSION } from './constants.js';
 import { isConfigChange } from './helpers.js';
 
@@ -54,6 +55,14 @@ export interface LinkedSkillRow {
 export interface SkillLinkInput {
   skillId: string;
   enabled: boolean;
+}
+
+/** Raw 30-day counters for one agent; the service turns them into `AgentUsage`. */
+export interface AgentUsageCounts {
+  runs: number;
+  avgCostUsd: number | null;
+  accepted: number;
+  dismissed: number;
 }
 
 export class AgentsRepository {
@@ -228,13 +237,14 @@ export class AgentsRepository {
   }
 
   /**
-   * The skills that actually go into this agent's prompt, in order: every skill
-   * selected for the agent. The agent's own selection is the only gate — the
-   * skill's workspace-level `enabled` flag does not remove it from a run.
+   * The skills that actually go into this agent's prompt, in order: selected
+   * for the agent AND switched on in the workspace. A skill turned off on the
+   * Skills page is left out of every run; the agent's selection (and its
+   * version snapshot) is untouched, so turning it back on restores it.
    */
   async enabledSkillsForRun(agentId: string): Promise<(typeof t.skills.$inferSelect)[]> {
     const links = await this.linkedSkills(agentId);
-    return links.filter((l) => l.enabled).map((l) => l.skill);
+    return links.filter((l) => l.enabled && l.skill.enabled).map((l) => l.skill);
   }
 
   /** Enabled-link count per agent for a workspace (agent cards' skill badge). */
@@ -246,6 +256,64 @@ export class AgentsRepository {
       .where(and(eq(t.agents.workspaceId, workspaceId), eq(t.agentSkills.enabled, true)))
       .groupBy(t.agentSkills.agentId);
     return new Map(rows.map((r) => [r.agentId, r.n]));
+  }
+
+  /**
+   * 30-day counters per agent for a workspace, in ONE statement (agent cards'
+   * stats footer). Only completed runs count; agents without one are absent.
+   */
+  async usageCounts(workspaceId: string): Promise<Map<string, AgentUsageCounts>> {
+    const rows = await this.db.execute<{
+      agent_id: string;
+      runs: number;
+      avg_cost_usd: string | null;
+      accepted: number;
+      dismissed: number;
+    }>(sql`
+      with window_runs as (
+        select r.id, r.agent_id, r.cost_usd
+        from agent_runs r
+        where r.workspace_id = ${workspaceId}
+          and r.agent_id is not null
+          and r.status = ${COMPLETED_RUN_STATUS}
+          and r.ran_at >= now() - make_interval(days => ${STATS_WINDOW_DAYS}::int)
+      ),
+      costs as (
+        select agent_id, count(*)::int as runs, avg(cost_usd) as avg_cost_usd
+        from window_runs
+        group by agent_id
+      ),
+      outcomes as (
+        select
+          w.agent_id,
+          (count(*) filter (where f.accepted_at is not null))::int as accepted,
+          (count(*) filter (where f.dismissed_at is not null and f.accepted_at is null))::int as dismissed
+        from window_runs w
+        join reviews rv on rv.run_id = w.id
+        join findings f on f.review_id = rv.id
+        group by w.agent_id
+      )
+      select
+        c.agent_id,
+        c.runs,
+        c.avg_cost_usd,
+        coalesce(o.accepted, 0) as accepted,
+        coalesce(o.dismissed, 0) as dismissed
+      from costs c
+      left join outcomes o on o.agent_id = c.agent_id
+    `);
+    return new Map(
+      rows.map((r) => [
+        r.agent_id,
+        {
+          runs: r.runs,
+          // NUMERIC comes back as a string; null when no run carried a cost.
+          avgCostUsd: r.avg_cost_usd == null ? null : Number(r.avg_cost_usd),
+          accepted: r.accepted,
+          dismissed: r.dismissed,
+        },
+      ]),
+    );
   }
 
   /** Which of `skillIds` exist in this workspace (tenant check before linking). */

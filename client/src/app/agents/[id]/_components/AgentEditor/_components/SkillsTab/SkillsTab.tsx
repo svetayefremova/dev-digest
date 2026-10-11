@@ -148,6 +148,13 @@ export function SkillsTab({ agent }: { agent: Agent }) {
             <span className="mono" style={s.name(enabled)} title={skill.description || skill.name}>
               {skill.name}
             </span>
+            {!skill.enabled && (
+              <span title={t("skills.offHint")}>
+                <Badge color="var(--text-muted)" bg="var(--bg-surface)">
+                  {t("skills.off")}
+                </Badge>
+              </span>
+            )}
             <SkillTypeBadge type={skill.type} label={tSkills(`type.${skill.type}`)} />
           </li>
         ))}

@@ -212,7 +212,7 @@ d('A2 reviews + agents (Testcontainers pg)', () => {
     await app.close();
   });
 
-  it('skills: skills selected for the agent reach the prompt as separate ordered blocks; unselected ones do not', async () => {
+  it('skills: skills selected for the agent reach the prompt as separate ordered blocks; unselected or switched-off ones do not', async () => {
     const app = await appWith(REVIEW_FIXTURE);
     const { pr } = await setupRepoAndPr(pg.handle.db, workspaceId);
     const post = (url: string, payload: object) => app.inject({ method: 'POST', url, payload });
@@ -259,26 +259,24 @@ d('A2 reviews + agents (Testcontainers pg)', () => {
 
     const trace = await run();
     const skills = trace.prompt_assembly.skills as string;
-    // One block per selected skill, in the order set on the agent. The agent's
-    // selection is the only gate: a skill switched off on the Skills page still
-    // goes in when the agent has it selected.
+    // One block per selected skill, in the order set on the agent. A skill
+    // switched off on the Skills page is left out even though the agent has it
+    // selected.
     expect(skills).toBe(
       '### Skill: skill-second\nUse when skill-second applies.\n\nBody of skill-second.' +
-        '\n\n' +
-        '### Skill: skill-globally-disabled\nUse when skill-globally-disabled applies.\n\nBody of skill-globally-disabled.' +
         '\n\n' +
         '### Skill: skill-first\nUse when skill-first applies.\n\nBody of skill-first.',
     );
     expect(skills).not.toContain('skill-link-disabled');
+    expect(skills).not.toContain('skill-globally-disabled');
     expect(trace.prompt_assembly.user).toContain(`## Skills / rules\n${skills}`);
     expect(trace.prompt_assembly.skills_tokens).toBeGreaterThan(0);
-    expect(trace.log.some((e: { msg: string }) => e.msg.includes('3 block(s)'))).toBe(true);
+    expect(trace.log.some((e: { msg: string }) => e.msg.includes('2 block(s)'))).toBe(true);
 
     // The run recorded exactly the blocks its prompt carried, in prompt order.
     expect(trace.runSkills).toEqual([
       { runId: expect.any(String), skillId: second, skillName: 'skill-second', skillVersion: 1, tokens: expect.any(Number), order: 0 },
-      { runId: expect.any(String), skillId: globallyOff, skillName: 'skill-globally-disabled', skillVersion: 1, tokens: expect.any(Number), order: 1 },
-      { runId: expect.any(String), skillId: first, skillName: 'skill-first', skillVersion: 1, tokens: expect.any(Number), order: 2 },
+      { runId: expect.any(String), skillId: first, skillName: 'skill-first', skillVersion: 1, tokens: expect.any(Number), order: 1 },
     ]);
     expect(trace.runSkills.every((r: { tokens: number }) => r.tokens > 0)).toBe(true);
 

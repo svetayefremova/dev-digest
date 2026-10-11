@@ -6,6 +6,7 @@ import { buildApp } from '../src/app.js';
 import { loadConfig } from '../src/platform/config.js';
 import { seed } from '../src/db/seed.js';
 import { MockAuthProvider } from '../src/adapters/mocks.js';
+import { AgentsRepository } from '../src/modules/agents/repository.js';
 import * as t from '../src/db/schema.js';
 
 const hasDocker = await dockerAvailable();
@@ -220,6 +221,40 @@ d('skills (Testcontainers pg)', () => {
     await a.close();
   });
 
+  it('a skill switched off in the workspace is left out of runs; the agent itself is unchanged', async () => {
+    const a = await app();
+    const kept = await createSkill(a, 'run-kept');
+    const toggled = await createSkill(a, 'run-toggled');
+    const agent = await createAgent(a, 'Run Gate');
+    const linked = await a.inject({
+      method: 'POST',
+      url: `/agents/${agent.id}/skills`,
+      payload: { skills: [{ skill_id: kept.id, enabled: true }, { skill_id: toggled.id, enabled: true }] },
+    });
+    expect(linked.statusCode).toBe(200);
+    const repo = new AgentsRepository(pg.handle.db);
+    const forRun = async () => (await repo.enabledSkillsForRun(agent.id)).map((sk) => sk.id);
+    const agentVersion = async () => (await a.inject({ method: 'GET', url: `/agents/${agent.id}` })).json().version;
+    const setEnabled = (enabled: boolean) =>
+      a.inject({ method: 'PUT', url: `/skills/${toggled.id}`, payload: { enabled } });
+
+    expect(await forRun()).toEqual([kept.id, toggled.id]);
+    const before = await agentVersion();
+
+    expect((await setEnabled(false)).statusCode).toBe(200);
+    expect(await forRun()).toEqual([kept.id]);
+    // The agent's own selection and config version are untouched.
+    expect((await a.inject({ method: 'GET', url: `/agents/${agent.id}/skills` })).json()).toMatchObject([
+      { skill_id: kept.id, enabled: true },
+      { skill_id: toggled.id, enabled: true },
+    ]);
+    expect(await agentVersion()).toBe(before);
+
+    expect((await setEnabled(true)).statusCode).toBe(200);
+    expect(await forRun()).toEqual([kept.id, toggled.id]);
+    await a.close();
+  });
+
   it('versions carry a message: server defaults, or the caller\'s own', async () => {
     const a = await app();
     const { id } = await createSkill(a, 'messages-skill');
@@ -306,6 +341,15 @@ d('skills (Testcontainers pg)', () => {
         ]),
       );
 
+    const agentUsage = async () =>
+      Object.fromEntries(
+        ((await c.inject({ method: 'GET', url: '/agents' })).json() as { id: string; usage: object }[]).map((ag) => [
+          ag.id,
+          ag.usage,
+        ]),
+      );
+    expect((await agentUsage())[usesIt.id]).toEqual({ runs: 0, accept_pct: null, avg_cost_usd: null });
+
     // No runs yet: percentages are null (not 0), but the agent link already counts.
     expect(await stats()).toEqual({
       used_by: 1,
@@ -342,12 +386,13 @@ d('skills (Testcontainers pg)', () => {
       withSkill: boolean;
       status?: string;
       daysAgo?: number;
+      costUsd?: string;
       findings?: [category: string, outcome: Outcome][];
     }) {
       const ranAt = new Date(Date.now() - (opts.daysAgo ?? 1) * 24 * 60 * 60 * 1000);
       const [run] = await db
         .insert(t.agentRuns)
-        .values({ workspaceId: ws!.id, agentId: usesIt.id, prId: pr!.id, status: opts.status ?? 'done', ranAt })
+        .values({ workspaceId: ws!.id, agentId: usesIt.id, prId: pr!.id, status: opts.status ?? 'done', ranAt, costUsd: opts.costUsd })
         .returning();
       if (opts.withSkill) {
         await db.insert(t.agentRunSkills).values({
@@ -381,13 +426,23 @@ d('skills (Testcontainers pg)', () => {
     }
 
     // In the window and completed: 4 runs, 2 of them carrying the skill.
-    await seedRun({ withSkill: true, findings: [['bug', 'accepted'], ['bug', 'dismissed'], ['security', 'accepted']] });
-    await seedRun({ withSkill: true, findings: [['test', 'open']] });
+    await seedRun({
+      withSkill: true,
+      costUsd: '0.04',
+      findings: [['bug', 'accepted'], ['bug', 'dismissed'], ['security', 'accepted']],
+    });
+    await seedRun({ withSkill: true, costUsd: '0.06', findings: [['test', 'open']] });
     await seedRun({ withSkill: false, findings: [['style', 'accepted']] });
     await seedRun({ withSkill: false });
     // Not counted anywhere: a failed run, and a completed one older than 30 days.
-    await seedRun({ withSkill: true, status: 'failed', findings: [['perf', 'dismissed']] });
-    await seedRun({ withSkill: true, daysAgo: 45, findings: [['perf', 'dismissed']] });
+    await seedRun({ withSkill: true, status: 'failed', costUsd: '9', findings: [['perf', 'dismissed']] });
+    await seedRun({ withSkill: true, daysAgo: 45, costUsd: '9', findings: [['perf', 'dismissed']] });
+
+    // Agent cards: the same window, per agent. 4 runs; 3 accepted / (3 + 1
+    // dismissed); the average is over the two runs that carry a cost.
+    const perAgent = await agentUsage();
+    expect(perAgent[usesIt.id]).toEqual({ runs: 4, accept_pct: 75, avg_cost_usd: 0.05 });
+    expect(perAgent[off.id]).toEqual({ runs: 0, accept_pct: null, avg_cost_usd: null });
 
     expect(await stats()).toEqual({
       used_by: 1,

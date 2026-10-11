@@ -59,11 +59,31 @@ describe("SkillCard", () => {
     expect(screen.getByText("2 agents · 0% pull")).toBeInTheDocument();
   });
 
-  it("clicking the card opens the skill; there is no global on/off switch", () => {
+  it("clicking the card opens the skill; without onToggle there is no switch", () => {
     const onClick = vi.fn();
     renderCard(<SkillCard skill={SKILL} onClick={onClick} />);
     expect(screen.queryByRole("switch")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "uncovered-branches" }));
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("the switch turns the skill off without opening it", () => {
+    const onClick = vi.fn();
+    const onToggle = vi.fn();
+    renderCard(<SkillCard skill={SKILL} onClick={onClick} onToggle={onToggle} />);
+    const toggle = screen.getByRole("switch");
+    expect(toggle).toBeChecked();
+    fireEvent.click(toggle);
+    expect(onToggle).toHaveBeenCalledWith(false);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it("the switch of an off skill turns it back on", () => {
+    const onToggle = vi.fn();
+    renderCard(<SkillCard skill={{ ...SKILL, enabled: false }} onToggle={onToggle} />);
+    const toggle = screen.getByRole("switch");
+    expect(toggle).not.toBeChecked();
+    fireEvent.click(toggle);
+    expect(onToggle).toHaveBeenCalledWith(true);
   });
 });

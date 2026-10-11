@@ -31,6 +31,8 @@
   },
   "card": {
     "noDescription": "No description",
+    "turnOff": "Turn this skill off — no agent will use it",
+    "turnOn": "Turn this skill on",
     "source": {
       "manual": "Manual",
       "imported_file": "Imported",

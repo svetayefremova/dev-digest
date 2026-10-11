@@ -1,20 +1,31 @@
 {
   "card": {
     "noDescription": "No description",
-    "skillCount": "{count} skills"
+    "skillCount": "{count} skills",
+    "runs": "{count, plural, one {# run} other {# runs}}",
+    "accept": "{pct}% accept",
+    "avgCost": "{cost} avg"
   },
   "list": {
     "breadcrumbLab": "Skills Lab",
     "breadcrumb": "Agents",
     "title": "Agents",
-    "subtitle": "User-created reviewers. Each = provider + model + system prompt + linked skills.",
     "searchPlaceholder": "Search agents…",
     "addAgent": "Add Agent",
     "createFromScratch": "Create from scratch",
     "loadError": "Could not load agents.",
     "emptyTitle": "No agents yet",
     "emptyBody": "An agent is a configured reviewer — a model, a prompt, and the skills it uses. Create one to start reviewing.",
-    "emptyCta": "Create your first agent"
+    "emptyCta": "Create your first agent",
+    "startFromTemplate": "Start from template",
+    "select": {
+      "title": "Select an agent",
+      "body": "Pick an agent on the left to configure it and choose its skills, or add a new one. An enabled agent can be run as a reviewer on any pull request."
+    },
+    "noMatch": {
+      "title": "No matching agents",
+      "body": "Try a different search term."
+    }
   },
   "create": {
     "title": "Create agent",
@@ -95,6 +106,8 @@
     "loadError": "Could not load skills.",
     "dragHandle": "Drag to reorder {name}",
     "toggle": "Use {name} for this agent",
+    "off": "Off",
+    "offHint": "Switched off on the Skills page — not used in runs until it is turned back on.",
     "emptyTitle": "No skills yet",
     "emptyBody": "Create or import a skill on the Skills page, then enable it here.",
     "emptyCta": "Go to Skills",
