@@ -42,6 +42,8 @@ export interface InsertSkill {
   source: SkillSource;
   body: string;
   enabled: boolean;
+  /** Repo files an extracted skill's rules were found in. */
+  evidenceFiles?: string[];
   /** Message recorded on version 1. */
   message: string;
 }

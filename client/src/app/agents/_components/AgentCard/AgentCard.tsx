@@ -71,11 +71,11 @@ export function AgentCard({
       </div>
       <div style={s.description}>{ag.description || t("card.noDescription")}</div>
       <div style={s.metaRow}>
-        <span className="mono" style={s.modelChip(color)}>
+        <span className="mono" style={s.modelChip(color)} title={ag.model}>
           {ag.model}
         </span>
         {skillCount != null && (
-          <Badge color="var(--text-secondary)" icon="Sparkles">
+          <Badge color="var(--text-secondary)" icon="Sparkles" style={s.skillsBadge}>
             {t("card.skillCount", { count: skillCount })}
           </Badge>
         )}

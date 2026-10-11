@@ -1,0 +1,14 @@
+{
+  "name": "Conventions page: reach it from the Skills Lab sidebar and see the first-scan state",
+  "description": "From the seeded repo's PR list, clicks Conventions in the sidebar's Skills Lab group and confirms the repo-scoped route loads with its not-scanned-yet state: the Run Scan call to action and no ReScan button. Exercises the nav entry, the /repos/<id>/conventions route and the scan fetch. Assumes a freshly-seeded DB (no scan yet); the scan itself is not started, so no model call.",
+  "steps": [
+    { "cmd": ["open", "{BASE}/"], "label": "load the app root" },
+    { "cmd": ["wait", "--url", "/pulls"], "label": "land on the PR list" },
+    { "cmd": ["find", "text", "Conventions", "click"], "label": "open Conventions from the sidebar" },
+    { "cmd": ["wait", "--url", "/conventions"], "label": "conventions route reached" },
+    { "cmd": ["wait", "--load", "networkidle"], "label": "scan fetch settles" },
+    { "cmd": ["wait", "--text", "Conventions in"], "label": "page heading renders" },
+    { "cmd": ["wait", "--text", "No conventions extracted yet"], "label": "first-scan empty state is visible" },
+    { "cmd": ["wait", "--text", "Run Scan"], "label": "Run Scan call to action is offered" }
+  ]
+}

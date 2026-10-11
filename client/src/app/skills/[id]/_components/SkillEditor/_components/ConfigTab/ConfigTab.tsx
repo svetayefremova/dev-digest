@@ -12,7 +12,7 @@ import type { Skill } from "@devdigest/shared";
 import { useDeleteSkill, useUpdateSkill } from "../../../../../../../lib/hooks/skills";
 import { useToast } from "../../../../../../../lib/toast";
 import { SkillForm, isSkillFormValid, type SkillFormValues } from "../../../../../_components/SkillForm";
-import { SkillBodyEditor } from "./_components/SkillBodyEditor";
+import { SkillBodyEditor } from "../../../../../../../components/skill-body-editor";
 import { MAX_MESSAGE_LENGTH } from "./constants";
 import { s } from "./styles";
 

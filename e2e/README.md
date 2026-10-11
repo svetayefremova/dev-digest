@@ -101,3 +101,4 @@ a CI artifact by `.github/workflows/e2e-web.yml`).
 | `06-onboarding` | `/onboarding` → add-repository form renders (no submit) |
 | `07-settings` | `/settings/api-keys` + `/settings/models` → section titles render |
 | `08-skills` | `/skills` → create a skill (a fresh seed has none) → click its card → editor opens on the Config tab |
+| `09-conventions` | sidebar Skills Lab → Conventions → `/repos/<id>/conventions` shows the not-scanned state with Run Scan (no scan started, no model call) |

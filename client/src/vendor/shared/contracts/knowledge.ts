@@ -190,15 +190,72 @@ export const CommunitySkill = z.object({
 export type CommunitySkill = z.infer<typeof CommunitySkill>;
 
 // ---- Conventions ----
+// A candidate's category — kept in step with the `conventions_category_ck`
+// DB constraint.
+export const ConventionCategory = z.enum([
+  'naming',
+  'structure',
+  'errors',
+  'testing',
+  'imports',
+  'typing',
+  'api',
+  'general',
+]);
+export type ConventionCategory = z.infer<typeof ConventionCategory>;
+
+// pending = found, not decided · accepted = goes into the skill · rejected =
+// dismissed for good (never listed again, never in the skill).
+export const ConventionStatus = z.enum(['pending', 'accepted', 'rejected']);
+export type ConventionStatus = z.infer<typeof ConventionStatus>;
+
+// One house rule found in the repo. The evidence is verified in code against
+// the cloned files: `evidence_snippet` is cut from the real file at
+// `evidence_line`..`evidence_end_line` (1-based, inclusive), never model text.
 export const ConventionCandidate = z.object({
   id: z.string(),
+  category: ConventionCategory,
   rule: z.string(),
   evidence_path: z.string(),
+  evidence_line: z.number().int(),
+  evidence_end_line: z.number().int(),
   evidence_snippet: z.string(),
   confidence: z.number().min(0).max(1),
-  accepted: z.boolean(),
+  status: ConventionStatus,
 });
 export type ConventionCandidate = z.infer<typeof ConventionCandidate>;
+
+// A repo's last scan plus its candidates (rejected ones left out).
+// `scanned_at` is null until the repo has been scanned once.
+export const ConventionScan = z.object({
+  repo_id: z.string(),
+  sample_files: z.number().int(),
+  scanned_at: z.string().nullable(),
+  candidates: z.array(ConventionCandidate),
+});
+export type ConventionScan = z.infer<typeof ConventionScan>;
+
+// The skill the accepted candidates merge into, BEFORE anything is saved — the
+// user edits it in the create modal.
+export const ConventionSkillDraft = z.object({
+  name: z.string(),
+  description: z.string(),
+  type: SkillType,
+  body: z.string(),
+  /** Exact token count of `body`, from the server tokenizer. */
+  body_tokens: z.number().int(),
+  /** How many accepted candidates were merged. */
+  conventions: z.number().int(),
+});
+export type ConventionSkillDraft = z.infer<typeof ConventionSkillDraft>;
+
+// Result of saving that draft: the new skill and the agents it was linked to.
+export const ConventionSkillCreated = z.object({
+  skill_id: z.string(),
+  name: z.string(),
+  agent_ids: z.array(z.string()),
+});
+export type ConventionSkillCreated = z.infer<typeof ConventionSkillCreated>;
 
 // ---- Agents ----
 export const Provider = z.enum(['openai', 'anthropic', 'openrouter']);

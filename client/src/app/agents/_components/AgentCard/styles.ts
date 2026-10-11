@@ -54,5 +54,12 @@ export const s = {
     background: color + "1a",
     padding: "1px 8px",
     borderRadius: 4,
+    // A long model id truncates on one line instead of wrapping and pushing
+    // the skills badge out of the card.
+    minWidth: 0,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   }),
+  skillsBadge: { flexShrink: 0, marginLeft: "auto" } satisfies CSSProperties,
 } as const;
