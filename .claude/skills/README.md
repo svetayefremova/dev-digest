@@ -21,6 +21,36 @@ Reusable AI skills that provide specialized knowledge and workflows. Canonical l
 | [engineering-insights](engineering-insights/SKILL.md) | Shared | Captures non-obvious discoveries into the touched module's `INSIGHTS.md`; also via `/engineering-insights` |
 | [pr-self-review](pr-self-review/SKILL.md) | Workflow | Maps the branch diff to relevant domain skills, normalizes severity, blocks `gh pr create`/`merge`/`push` on CRITICAL findings; also via `/pr-self-review` |
 
+## Routing: change zone → skills
+
+Single source of truth for which skills govern which kind of change. The `planner` agent (`.claude/agents/planner.md`) tags every plan step with skills from this table, and the `implementer` agent (`.claude/agents/implementer.md`) applies exactly those rules. Both agents preload the same full set of implementation skills (`skills:` in their frontmatter); the other agents preload the subsets listed in [Agent → preloaded skills](#agent--preloaded-skills). When adding an implementation skill, add it to this table **and** to the `skills:` list of `planner.md` and `implementer.md` (and of any other agent that should use it).
+
+| Change zone | Skills |
+|---|---|
+| `client/` routes, pages, components | next-best-practices, react-best-practices, frontend-architecture |
+| `client/` tests | react-testing-library |
+| `server/` routes, plugins, request validation | fastify-best-practices, onion-architecture, zod |
+| `server/` services, repositories, adapters, DI wiring | onion-architecture |
+| `server/` DB schema, queries, migrations | drizzle-orm-patterns, postgresql-table-design |
+| `reviewer-core/` | onion-architecture (purity: no DB/FS/GitHub), typescript-expert |
+| Shared contracts (`server/src/vendor/shared` + `client/src/vendor/shared`) | zod, typescript-expert |
+| Any module (always) | engineering-insights (read `INSIGHTS.md` first) |
+| Review only (not preloaded by any agent) | security, pr-self-review |
+| Docs (doc-writer) | mermaid-diagram |
+
+### Agent → preloaded skills
+
+Must equal the `skills:` frontmatter of each file in `.claude/agents/`.
+
+| Agent | Preloaded skills |
+|---|---|
+| planner, implementer | engineering-insights, typescript-expert, zod, next-best-practices, react-best-practices, frontend-architecture, react-testing-library, fastify-best-practices, onion-architecture, drizzle-orm-patterns, postgresql-table-design (the 11 implementation skills) |
+| test-writer | engineering-insights, typescript-expert, zod, react-testing-library, next-best-practices, frontend-architecture, fastify-best-practices, onion-architecture, drizzle-orm-patterns |
+| architecture-reviewer | engineering-insights, onion-architecture, frontend-architecture, next-best-practices, fastify-best-practices, typescript-expert |
+| plan-verifier | none (best-practice skills invite generic advice instead of criterion-by-criterion verification) |
+| doc-writer | mermaid-diagram, engineering-insights, onion-architecture, frontend-architecture |
+| researcher | none |
+
 ## What Are Skills?
 
 Skills are modular packages that extend the AI agent with specialized knowledge and workflows. Unlike rules (always applied) or agents (invoked for specific tasks), skills are loaded on-demand when the agent determines they're relevant.
