@@ -21,11 +21,15 @@ export async function waitForPrRuns(
   for (;;) {
     const runs = await db.select().from(t.agentRuns).where(eq(t.agentRuns.prId, prId));
     const terminal = runs.filter((r) => TERMINAL.has(r.status ?? ''));
-    // With an explicit `expected`, wait until that many runs finish (ignores any
-    // extra rows, e.g. a trifecta scan). Otherwise wait for all rows to settle.
+    // With an explicit `expected`, wait until that many AGENT runs finish. The
+    // PR intent classifier also writes an agent_runs row (agent_id NULL) that
+    // usually finishes first, so counting it let callers read reviews too early.
+    // Extra rows (e.g. a trifecta scan) are still ignored. Without `expected`,
+    // wait for all rows to settle.
+    const agentTerminal = terminal.filter((r) => r.agentId != null);
     const done =
       expected != null
-        ? terminal.length >= expected
+        ? agentTerminal.length >= expected
         : runs.length > 0 && terminal.length === runs.length;
     if (done) return runs;
     if (Date.now() - start > timeoutMs) return runs;
