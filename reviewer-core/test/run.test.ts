@@ -135,4 +135,28 @@ describe('reviewPullRequest (engine)', () => {
     expect(seen.length).toBeGreaterThan(0);
     expect(seen.every((s) => s === 'sess-abc')).toBe(true);
   });
+  it.each(['single-pass', 'map-reduce'] as const)(
+    'onPromptAssembled fires once per chunk (%s), content only with promptDebug',
+    async (strategy) => {
+      const llm = new MockLLMProvider('openai', { structured: fixture });
+      const diff = await new MockGitClient().diff();
+      const seen: import('../src/index.js').PromptAssembledInfo[] = [];
+      const outcome = await reviewPullRequest({
+        systemPrompt: 's',
+        model: 'gpt-4.1',
+        diff,
+        llm,
+        strategy,
+        onPromptAssembled: (i) => seen.push(i),
+      });
+      expect(seen).toHaveLength(outcome.chunks.length);
+      expect(seen.every((i) => i.model === 'gpt-4.1' && i.mode === outcome.mode)).toBe(true);
+      expect(seen.every((i) => i.sectionTexts === undefined)).toBe(true);
+      expect(seen[0]!.total_chars).toBe(seen[0]!.sections.reduce((n, s) => n + s.chars, 0));
+
+      const dbg: import('../src/index.js').PromptAssembledInfo[] = [];
+      await reviewPullRequest({ systemPrompt: 's', model: 'm', diff, llm, strategy, promptDebug: true, onPromptAssembled: (i) => dbg.push(i) });
+      expect(dbg[0]!.sectionTexts).toHaveLength(dbg[0]!.sections.length);
+    },
+  );
 });

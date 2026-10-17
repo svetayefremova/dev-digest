@@ -14,6 +14,7 @@ import { runBus, type RunBus } from './sse.js';
 import { LocalSecretsProvider } from '../adapters/secrets/local.js';
 import { LocalNoAuthProvider } from '../adapters/auth/local.js';
 import { OctokitGitHubClient } from '../adapters/github/octokit.js';
+import { IntentService } from '../modules/intent/service.js';
 import { SimpleGitClient } from '../adapters/git/simple-git.js';
 import { RipgrepCodeIndex } from '../adapters/codeindex/ripgrep.js';
 import { OpenAIProvider } from '../adapters/llm/openai.js';
@@ -65,6 +66,7 @@ export class Container {
 
   private _git?: GitClient;
   private _github?: GitHubClient;
+  private _intent?: IntentService;
   private _codeIndex?: CodeIndex;
   private _embedder?: Embedder;
   private llmCache = new Map<string, LLMProvider>();
@@ -94,6 +96,11 @@ export class Container {
     if (this.overrides.git) return this.overrides.git;
     this._git ??= new SimpleGitClient(this.config.cloneDir);
     return this._git;
+  }
+
+  /** PR intent classifier + store (lazy, process-wide: owns the in-flight guard). */
+  get intent(): IntentService {
+    return (this._intent ??= new IntentService(this));
   }
 
   get agentsRepo(): AgentsRepository {

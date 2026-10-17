@@ -7,9 +7,11 @@ import type {
   UnifiedDiff,
 } from '@devdigest/shared';
 import { Review as ReviewSchema } from '@devdigest/shared';
-import { assemblePrompt } from '../prompt.js';
+import { assemblePrompt, type PromptSectionMeta } from '../prompt.js';
 import { groundFindings, groundingSummary } from '../grounding.js';
 import { reduceReviews, scoreFromFindings, sliceDiff } from './reduce.js';
+import { applyIntentScope } from './scope.js';
+import type { ReviewIntentContext } from '../intent/types.js';
 
 /**
  * reviewPullRequest — the review engine entry point.
@@ -33,6 +35,25 @@ export const DEFAULT_REVIEW_MAX_RETRIES = 2;
 
 export type ReviewStrategy = 'auto' | 'single-pass' | 'map-reduce';
 export type ReviewMode = 'single-pass' | 'map-reduce';
+
+/**
+ * Content-free description of one assembled LLM prompt (one per chunk), for
+ * structured ops logging. `sectionTexts` is present ONLY when the caller set
+ * `promptDebug` — it exists so a local debug logger can hash / token-count the
+ * sections; it must never be written to a log.
+ */
+export interface PromptAssembledInfo {
+  /** Chunk label: a file path (map-reduce) or 'all files' — never content. */
+  chunk: string;
+  mode: ReviewMode;
+  model: string;
+  /** Files covered by this chunk. */
+  files: number;
+  sections: PromptSectionMeta[];
+  total_chars: number;
+  total_est_tokens: number;
+  sectionTexts?: string[];
+}
 
 /** Progress event emitted during a review (server → SSE bus, runner → log). */
 export interface ReviewEvent {
@@ -73,6 +94,11 @@ export interface ReviewInput {
   prDescription?: string;
   /** Task framing line, e.g. "Review PR #482 …". */
   task?: string;
+  /**
+   * Classified PR intent. Injected into the prompt and used to filter findings
+   * the model flags `out_of_scope` (see `applyIntentScope`). Undefined → no-op.
+   */
+  intent?: ReviewIntentContext;
   /** Override the structured-output retry budget. */
   maxRetries?: number;
   /** Override the map-reduce line threshold. */
@@ -84,6 +110,13 @@ export interface ReviewInput {
   sessionId?: string;
   /** Progress sink. */
   onEvent?: (e: ReviewEvent) => void;
+  /**
+   * Prompt-assembly sink — called once per chunk after the prompt is built and
+   * before its LLM call. Receives sizes/sources only (see PromptAssembledInfo).
+   */
+  onPromptAssembled?: (info: PromptAssembledInfo) => void;
+  /** Also hand `sectionTexts` to onPromptAssembled (local debugging only). */
+  promptDebug?: boolean;
   /**
    * Cancellation checkpoint, called before each (expensive) chunk LLM call.
    * Supply a function that THROWS to abort mid-run (the caller owns the error
@@ -110,6 +143,10 @@ export interface ReviewOutcome {
   costUsd: number | null;
   /** Joined raw model outputs (for the run trace). */
   raw: string;
+  /** Out-of-scope findings dropped by the intent filter. */
+  intentFiltered: number;
+  /** True when exactly one out-of-scope finding was kept as a defect signal. */
+  keptSignal: boolean;
 }
 
 function selectMode(strategy: ReviewStrategy, diff: UnifiedDiff, threshold: number): ReviewMode {
@@ -135,6 +172,7 @@ export async function reviewPullRequest(input: ReviewInput): Promise<ReviewOutco
     callers: input.callers,
     repoMap: input.repoMap,
     prDescription: input.prDescription,
+    intent: input.intent,
     task: input.task,
   };
 
@@ -171,6 +209,19 @@ export async function reviewPullRequest(input: ReviewInput): Promise<ReviewOutco
     );
     const a = assemblePrompt({ ...promptParts, diff: chunk.diffText });
     if (mode === 'single-pass') assembly = a.assembly;
+    if (input.onPromptAssembled) {
+      const totalChars = a.sections.reduce((n, sec) => n + sec.chars, 0);
+      input.onPromptAssembled({
+        chunk: chunk.label,
+        mode,
+        model: input.model,
+        files: mode === 'map-reduce' ? 1 : input.diff.files.length,
+        sections: a.sections,
+        total_chars: totalChars,
+        total_est_tokens: a.sections.reduce((n, sec) => n + sec.est_tokens, 0),
+        ...(input.promptDebug ? { sectionTexts: a.sectionTexts } : {}),
+      });
+    }
     const res = await input.llm.completeStructured<Review>({
       model: input.model,
       schema: ReviewSchema,
@@ -193,8 +244,14 @@ export async function reviewPullRequest(input: ReviewInput): Promise<ReviewOutco
     `Reduced to ${merged.findings.length} finding(s); verdict=${merged.verdict}, score=${merged.score}`,
   );
 
+  // Intent scope filter (before grounding): keeps in-scope findings + one signal.
+  const scoped = applyIntentScope(merged.findings, input.intent);
+  if (scoped.filtered > 0) {
+    emit('info', `intent scope dropped ${scoped.filtered} out-of-scope finding(s)`);
+  }
+
   // SHARED citation-grounding gate (the only post-step; not duplicated per strategy).
-  const ground = groundFindings(merged.findings, input.diff);
+  const ground = groundFindings(scoped.findings, input.diff);
   const grounding = groundingSummary(ground);
   for (const d of ground.dropped) {
     emit('info', `grounding dropped "${d.finding.title}": ${d.reason}`);
@@ -215,5 +272,7 @@ export async function reviewPullRequest(input: ReviewInput): Promise<ReviewOutco
     tokensOut,
     costUsd,
     raw: raws.join('\n---\n'),
+    intentFiltered: scoped.filtered,
+    keptSignal: scoped.keptSignal,
   };
 }

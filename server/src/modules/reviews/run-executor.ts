@@ -1,7 +1,8 @@
 import type { Container } from '../../platform/container.js';
-import type { Provider, Review, RunTrace, UnifiedDiff } from '@devdigest/shared';
-import { reviewPullRequest, countBlockers } from '@devdigest/reviewer-core';
+import type { PrIntentRecord, Provider, Review, RunTrace, UnifiedDiff } from '@devdigest/shared';
+import { reviewPullRequest, countBlockers, type ReviewIntentContext } from '@devdigest/reviewer-core';
 import { RunLogger } from '../../platform/run-logger.js';
+import { logPromptAssembly } from '../../platform/prompt-log.js';
 import * as schema from '../../db/schema.js';
 import type { AgentRow } from '../../db/rows.js';
 import type { ReviewRepository, FindingRow, PullRow, ReviewRow } from './repository.js';
@@ -9,6 +10,15 @@ import { REVIEW_STRATEGY } from './constants.js';
 import { taskLine } from './helpers.js';
 import { loadDiff } from './diff-loader.js';
 import { formatSkillBlock } from '../skills/helpers.js';
+
+const toIntentContext = (i: PrIntentRecord): ReviewIntentContext => ({
+  summary: i.summary,
+  in_scope: i.in_scope,
+  out_of_scope: i.out_of_scope,
+  confidence: i.confidence,
+  missing_context: i.missing_context,
+  stale: i.stale,
+});
 
 /** Thrown by a run when the user cancels it mid-flight (between map files). */
 export class RunCancelledError extends Error {
@@ -59,6 +69,7 @@ export class ReviewRunExecutor {
     repo: typeof schema.repos.$inferSelect,
     jobs: { agent: AgentRow; runId: string }[],
     logger?: Logger,
+    correlationId?: string,
   ): Promise<void> {
     // ONE logger fanned out over every queued run: shared pre-work (diff +
     // intent) is streamed into each target agent's Live Log and persisted into
@@ -67,7 +78,7 @@ export class ReviewRunExecutor {
       this.container.runBus,
       jobs.map((j) => j.runId),
       logger,
-      { prId: pull.id },
+      { prId: pull.id, ...(correlationId ? { correlationId } : {}) },
     );
 
     // Pre-work failure (e.g. diff load) fails EVERY queued run. The error was
@@ -106,14 +117,19 @@ export class ReviewRunExecutor {
     }
     runLog.info(`Diff ready — ${diff.files.length} changed file(s); starting ${jobs.length} agent run(s)`);
 
+    // PR intent: classified once per review (separate cheap model + its own
+    // agent_runs row). A stale intent is reused; any failure → null and the
+    // review runs exactly as it did without this layer.
+    const intent = await this.container.intent.ensureIntent(workspaceId, pull, repo, diff, runLog, logger);
+
     for (const { agent, runId } of jobs) {
       const agentStart = Date.now();
       logger?.info(
-        { runId, agent: agent.name, provider: agent.provider, model: agent.model, prId: pull.id },
+        { runId, correlationId, agent: agent.name, provider: agent.provider, model: agent.model, prId: pull.id },
         `review: agent "${agent.name}" started (${agent.provider}/${agent.model})`,
       );
       try {
-        const outcome = await this.runOneAgent(workspaceId, pull, repo, diff, agent, runId, runLog);
+        const outcome = await this.runOneAgent(workspaceId, pull, repo, diff, agent, runId, runLog, intent, logger, correlationId);
         logger?.info(
           {
             runId,
@@ -145,6 +161,9 @@ export class ReviewRunExecutor {
     agent: AgentRow,
     runId: string,
     parentLog: RunLogger,
+    intent: PrIntentRecord | null,
+    logger?: Logger,
+    correlationId?: string,
   ): Promise<RunOutcome> {
     const start = Date.now();
     // Narrow the fanned-out pre-work logger to THIS run; the shared diff/intent
@@ -224,14 +243,35 @@ export class ReviewRunExecutor {
         // PR author's description/body — untrusted; assemblePrompt wraps +
         // truncates it. Omitted when the PR has no body.
         ...(pull.body ? { prDescription: pull.body } : {}),
+        ...(intent ? { intent: toIntentContext(intent) } : {}),
         task,
         sessionId: `${repo.owner}/${repo.name}#${pull.number}:${agent.name}`,
         onEvent: (e) => runLog.event(e.kind, e.msg, e.data),
+        // Content-free prompt metadata → stdout only (see platform/prompt-log.ts).
+        // Section texts are requested only in the local verbose mode.
+        promptDebug: this.container.config.promptLogVerbose,
+        onPromptAssembled: (info) =>
+          logPromptAssembly(
+            logger,
+            info,
+            { correlationId, runId, agent: agent.name, provider: agent.provider },
+            { verbose: this.container.config.promptLogVerbose, tokenizer: this.container.tokenizer },
+          ),
         checkCancelled: () => {
           if (this.container.runBus.isCancelled(runId)) throw new RunCancelledError();
         },
       });
       const { tokensIn, tokensOut, costUsd, grounding } = outcome;
+      if (intent) {
+        runLog.info('intent.injected', {
+          confidence: intent.confidence,
+          stale: intent.stale,
+          in_scope_n: intent.in_scope.length,
+          out_of_scope_n: intent.out_of_scope.length,
+          filtered_n: outcome.intentFiltered,
+          kept_signal: outcome.keptSignal,
+        });
+      }
 
       const keptFindings = outcome.review.findings;
 

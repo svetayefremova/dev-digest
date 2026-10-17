@@ -41,6 +41,7 @@ export function FindingCard({
   headSha?: string | null;
 }) {
   const t = useTranslations("prReview");
+  const tIntent = useTranslations("intent");
   const [expanded, setExpanded] = React.useState(defaultExpanded ?? false);
   const sevColor = SEV_COLOR[f.severity] ?? SEV_COLOR_FALLBACK;
   const fileHref =
@@ -61,6 +62,7 @@ export function FindingCard({
           <div style={s.titleRow}>
             <span style={s.title(muted, dismissed)}>{f.title}</span>
             <CategoryTag category={f.category as Category} />
+            {f.out_of_scope && <span style={s.outOfScopeTag}>{tIntent("outsideScope")}</span>}
             {accepted && <span style={s.acceptedTag}>{t("finding.accepted")}</span>}
             {dismissed && <span style={s.dismissedTag}>{t("finding.dismissed")}</span>}
           </div>

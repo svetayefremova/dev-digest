@@ -64,3 +64,45 @@ describe('assemblePrompt — ## PR description', () => {
     expect((assembly.pr_description as string).length).toBe(4000);
   });
 });
+
+describe('assemblePrompt — section metadata (safe logging)', () => {
+  const parts = {
+    system: 'AGENT-SYS',
+    task: 'Review PR #1',
+    skills: ['skill-a body', 'skill-b'],
+    specs: ['SPEC-PRIVATE-CONTENT'],
+    prDescription: 'author body',
+    diff: 'DIFF-CONTENT',
+  };
+  const a = assemblePrompt(parts);
+
+  it('lists rendered sections in prompt order; absent ones are omitted', () => {
+    expect(a.sections.map((s) => s.name)).toEqual([
+      'system',
+      'injection_guard',
+      'task',
+      'pr_description',
+      'skills',
+      'specs',
+      'diff',
+    ]);
+    expect(a.sections.find((s) => s.name === 'memory')).toBeUndefined();
+  });
+
+  it('sizes match the actual user message and carry no content', () => {
+    const userSections = a.sections.filter((s) => !['system', 'injection_guard'].includes(s.name));
+    const joined = userSections.reduce((n, s) => n + s.chars, 0) + (userSections.length - 1) * 2;
+    expect(joined).toBe(a.messages[1]!.content.length);
+    for (const s of a.sections) expect(s.est_tokens).toBe(Math.ceil(s.chars / 4));
+    expect(a.sections.find((s) => s.name === 'skills')).toMatchObject({ items: 2, items_chars: [12, 7], trusted: true });
+    expect(a.sections.find((s) => s.name === 'diff')).toMatchObject({ source: 'diff', trusted: false });
+    const json = JSON.stringify(a.sections);
+    expect(json).not.toContain('SPEC-PRIVATE-CONTENT');
+    expect(json).not.toContain('DIFF-CONTENT');
+  });
+
+  it('sectionTexts are index-aligned with sections', () => {
+    expect(a.sectionTexts).toHaveLength(a.sections.length);
+    a.sections.forEach((s, i) => expect(a.sectionTexts[i]!.length).toBe(s.chars));
+  });
+});

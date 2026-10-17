@@ -1,0 +1,26 @@
+{
+  "title": "Intent",
+  "confidence": {
+    "high": "high confidence",
+    "medium": "medium confidence",
+    "low": "low confidence"
+  },
+  "inScope": "In scope",
+  "outOfScope": "Out of scope",
+  "none": "Nothing stated",
+  "stale": "stale",
+  "staleHint": "Detected on an earlier commit. Re-detect to refresh.",
+  "lowBanner": "Low confidence: the description is thin, so the intent is a best guess. Out-of-scope findings are only marked, never dropped.",
+  "missingBanner": "Some referenced context could not be retrieved:",
+  "sources": "Sources",
+  "unavailable": "unavailable",
+  "truncated": "truncated",
+  "redetect": "Re-detect",
+  "detect": "Detect intent",
+  "detecting": "Detecting…",
+  "empty": "No intent detected yet. It is derived automatically on the first review, or you can detect it now.",
+  "loading": "Loading intent…",
+  "error": "Could not load the intent.",
+  "detectFailed": "Intent detection failed.",
+  "outsideScope": "Outside PR scope"
+}

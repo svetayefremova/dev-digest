@@ -32,6 +32,10 @@ const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   // `.env` (and .env.example) ship `LOG_LEVEL=` empty; an empty string is not a
   // valid enum member, so coerce '' → undefined to fall through to the default.
+  // Verbose prompt-assembly logging (per-section hashes, item sizes, exact
+  // tiktoken counts — still never section content). Honored ONLY when
+  // NODE_ENV=development; ignored (with a boot warning) anywhere else.
+  PROMPT_LOG_VERBOSE: z.string().optional(),
   LOG_LEVEL: z.preprocess(
     (v) => (v === '' ? undefined : v),
     z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).optional(),
@@ -59,12 +63,17 @@ export type AppConfig = {
    * EXACTLY like the ripgrep-only baseline.
    */
   repoIntelEnabled: boolean;
+  /** Verbose prompt-assembly logs. True only for PROMPT_LOG_VERBOSE=true in development. */
+  promptLogVerbose: boolean;
+  /** PROMPT_LOG_VERBOSE=true was set outside development and ignored (boot warns). */
+  promptLogVerboseIgnored: boolean;
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const parsed = EnvSchema.parse(env);
   const cloneDirRaw =
     parsed.DEVDIGEST_CLONE_DIR ?? join(homedir(), '.devdigest', 'workspace');
+  const verboseRequested = parsed.PROMPT_LOG_VERBOSE === 'true';
   const cloneDir = isAbsolute(cloneDirRaw) ? cloneDirRaw : resolve(process.cwd(), cloneDirRaw);
   return {
     databaseUrl: parsed.DATABASE_URL,
@@ -77,5 +86,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     webOrigin: `http://localhost:${parsed.WEB_PORT}`,
     embeddingsEnabled: parsed.EMBEDDINGS_ENABLED === 'true',
     repoIntelEnabled: parsed.REPO_INTEL_ENABLED !== 'false',
+    promptLogVerbose: verboseRequested && parsed.NODE_ENV === 'development',
+    promptLogVerboseIgnored: verboseRequested && parsed.NODE_ENV !== 'development',
   };
 }

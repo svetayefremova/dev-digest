@@ -67,7 +67,7 @@ Follow the plan's order and respect `Depends on`. For each step:
 
 ## Step 3 — Run the package checks
 
-Run these for every touched package, from inside the package:
+Run these for every touched package, from inside the package. Keep the output short — the counts and failing test names are the evidence, full logs are not: append `2>&1 | tail -n 40` (Vitest `--reporter=dot` is fine), and on a failure re-run piped to `grep -E "FAIL|✗|Error" | head -n 40` before reading more.
 
 | Package | Command |
 |---|---|
@@ -76,8 +76,9 @@ Run these for every touched package, from inside the package:
 | server (integration) | `npx vitest run .it.test`, **only if** the plan touched schema/repositories/DB-backed routes **and** `docker info` succeeds. Otherwise record `skipped: <reason>` |
 | reviewer-core | `npm test` (+ `npm run typecheck`) |
 | e2e | never run. Recommend flows in the report if the plan lists them |
+| plan `check` rows | run each one from the plan's `Verification` table and record the result |
 
-If a check fails, fix it when the cause is in your change. **After 2 failed attempts at the same failure, stop.** Report `PARTIAL` with the failing command, the relevant output (trimmed) and your diagnosis. If a failure is clearly pre-existing, meaning the failing test and the code it exercises are untouched by your diff and unrelated to the plan, don't fix it. Report it as pre-existing.
+If a check fails, fix it when the cause is in your change — unless the caller forbade touching tests: then an existing test broken by your change is not fixed, it goes to `Failing existing tests` in the report. **After 2 failed attempts at the same failure, stop.** Report `PARTIAL` with the failing command, the relevant output (trimmed) and your diagnosis. If a failure is clearly pre-existing, meaning the failing test and the code it exercises are untouched by your diff and unrelated to the plan, don't fix it. Report it as pre-existing.
 
 ## Step 4 — Self-check (implementation only, not a review)
 
@@ -85,6 +86,7 @@ If a check fails, fix it when the cause is in your change. **After 2 failed atte
 - Every step is DONE, or explicitly PARTIAL/BLOCKED with a reason.
 - The diff has no debug output (`console.log` left behind), commented-out code, stray TODOs, or skipped/`.only` tests.
 - Every new UI string is in `messages/en/`, and every contract change is in both `vendor/shared` copies.
+- A migration you generated is **not** applied to the shared dev DB (you never run `db:migrate`). Say so in the report's `Dev DB` line, so the human applies it before opening the UI; otherwise the app fails with `column … does not exist`.
 
 ## Step 5 — Capture insights
 
@@ -108,6 +110,10 @@ Status: DONE | PARTIAL | BLOCKED
 | server | `npx vitest run --exclude '**/*.it.test.ts'` | pass — 142 passed, 0 failed |
 - Skipped: <command — reason> (or "None")
 - e2e recommended: <flows | None>
+- Dev DB: <None | `server/src/db/migrations/<file>.sql` NOT applied to the shared dev DB — apply it via the `server/INSIGHTS.md` procedure before opening the UI>
+
+## Failing existing tests
+- <None | `test name` · `file:line` · one-line cause (only when the caller forbade touching tests, or the failure is pre-existing)>
 
 ## Scope check
 - Files changed outside plan: <None | `path` — reason>
@@ -129,6 +135,6 @@ Status: DONE | PARTIAL | BLOCKED
 
 ## Style rules
 
-- Lead with the status, and keep the report factual and short.
+- Lead with the status, and keep the report factual and short: **≤ ~60 lines**. A DONE step is one table row; Deviations, Blockers and Handoff are one line per item. The plan already holds the detail — don't restate it.
 - Quote real numbers from command output. Never write "tests pass" without the command and the counts.
 - Don't paste diffs into the report. The reviewers read the diff themselves.

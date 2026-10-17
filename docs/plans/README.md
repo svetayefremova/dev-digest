@@ -4,7 +4,7 @@ Development Plans written by the `planner` agent (`.claude/agents/planner.md`) a
 
 - One file per change, named per [Naming](#naming). The template lives in `planner.md`.
 - Lifecycle: `Status: draft` (planner may still rewrite it) → `approved` (set by a human; frozen, since the planner's write guard refuses non-draft files) → `done`.
-- The planner can write only here (`.claude/hooks/planner-write-guard.sh`). This README is human-maintained.
+- The planner can write only here and in [`docs/agent-specs/`](../agent-specs/README.md) (`.claude/hooks/planner-write-guard.sh`). This README is human-maintained.
 - Skill tags in plan steps come from the routing table in `.claude/skills/README.md`.
 - `plan-verifier` reads the plan and checks every item; keep criteria checkable.
 

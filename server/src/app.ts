@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
@@ -47,11 +48,30 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
     // Explicit 1MB cap on request bodies (PR comments, settings payloads are
     // small). Protects against oversized/abusive payloads.
     bodyLimit: 1_048_576,
+    // Correlation id: honor an incoming x-request-id, else mint a UUID. It is
+    // `reqId` on every request log line and is threaded into background review
+    // runs as `correlationId` (see reviews/routes.ts).
+    requestIdHeader: 'x-request-id',
+    genReqId: () => randomUUID(),
     logger:
       config.logLevel === 'silent'
         ? false
         : {
             level: config.logLevel,
+            // Defense in depth: never let credentials reach stdout, whatever a
+            // caller passes in a log object.
+            redact: {
+              paths: [
+                'req.headers.authorization',
+                'req.headers.cookie',
+                'req.headers["x-api-key"]',
+                '*.apiKey',
+                '*.api_key',
+                '*.token',
+                '*.authorization',
+              ],
+              censor: '[redacted]',
+            },
             transport:
               config.nodeEnv === 'development'
                 ? { target: 'pino-pretty', options: { colorize: true } }
@@ -63,6 +83,10 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
   // Routes opt in per-module via `app.withTypeProvider<ZodTypeProvider>()`.
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
+
+  if (config.promptLogVerboseIgnored) {
+    app.log.warn('PROMPT_LOG_VERBOSE ignored outside NODE_ENV=development');
+  }
 
   const container = new Container(config, db, opts.overrides);
   app.decorate('container', container);

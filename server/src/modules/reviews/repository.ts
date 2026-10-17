@@ -1,6 +1,6 @@
 import type { Db } from '../../db/client.js';
 import * as t from '../../db/schema.js';
-import type { Finding, Intent, RunSummary, RunTrace } from '@devdigest/shared';
+import type { Finding, RunSummary, RunTrace } from '@devdigest/shared';
 
 /**
  * A2 — review data-access. The ONLY layer touching the DB for the review
@@ -129,11 +129,11 @@ export class ReviewRepository {
 
   // ---- intent -------------------------------------------------------------
 
-  upsertIntent(prId: string, intent: Intent): Promise<void> {
-    return pullRepo.upsertIntent(this.db, prId, intent);
+  upsertIntent(prId: string, rec: pullRepo.StoredIntent): Promise<void> {
+    return pullRepo.upsertIntent(this.db, prId, rec);
   }
 
-  getIntent(prId: string): Promise<Intent | undefined> {
+  getIntent(prId: string): Promise<(pullRepo.StoredIntent & { pr_id: string }) | undefined> {
     return pullRepo.getIntent(this.db, prId);
   }
 
@@ -146,6 +146,8 @@ export class ReviewRepository {
     prId: string;
     provider: string | null;
     model: string | null;
+    /** Display name for agent-less runs (e.g. the intent classifier). */
+    label?: string | null;
   }): Promise<string> {
     return runRepo.createAgentRun(this.db, values);
   }

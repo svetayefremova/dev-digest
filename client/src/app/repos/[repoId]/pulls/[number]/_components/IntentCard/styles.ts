@@ -1,0 +1,50 @@
+import type { CSSProperties } from "react";
+
+export const s = {
+  card: {
+    border: "1px solid var(--border)",
+    borderRadius: 10,
+    background: "var(--bg-elevated)",
+    padding: 18,
+    marginBottom: 18,
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+  } satisfies CSSProperties,
+  header: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" } satisfies CSSProperties,
+  spacer: { flex: 1 } satisfies CSSProperties,
+  summary: {
+    margin: 0,
+    paddingLeft: 12,
+    borderLeft: "3px solid var(--accent)",
+    fontSize: 14,
+    lineHeight: 1.55,
+    color: "var(--text-secondary)",
+  } satisfies CSSProperties,
+  columns: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 } satisfies CSSProperties,
+  colTitle: {
+    fontSize: 12,
+    fontWeight: 600,
+    letterSpacing: "0.04em",
+    color: "var(--text-muted)",
+    marginBottom: 6,
+  } satisfies CSSProperties,
+  list: { margin: 0, paddingLeft: 18, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 } satisfies CSSProperties,
+  muted: { fontSize: 13, color: "var(--text-muted)" } satisfies CSSProperties,
+  banner: (color: string): CSSProperties => ({
+    fontSize: 13,
+    color,
+    border: `1px solid ${color}`,
+    borderRadius: 8,
+    padding: "8px 12px",
+  }),
+  sourceRow: { display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" } satisfies CSSProperties,
+  chip: (ok: boolean): CSSProperties => ({
+    fontSize: 12,
+    fontFamily: "var(--font-mono, monospace)",
+    padding: "2px 8px",
+    borderRadius: 999,
+    border: "1px solid var(--border)",
+    color: ok ? "var(--text-secondary)" : "var(--danger, var(--text-muted))",
+  }),
+} as const;

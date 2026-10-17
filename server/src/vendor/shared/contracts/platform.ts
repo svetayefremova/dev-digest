@@ -50,10 +50,12 @@ export const FEATURE_MODELS: FeatureModelDef[] = [
   },
   {
     id: 'review_intent',
-    label: 'PR Review · Intent',
-    description: 'Derives a PR’s intent and scope before review.',
-    defaultProvider: 'openai',
-    defaultModel: 'gpt-4.1',
+    label: 'Intent classifier (cheap)',
+    description:
+      'Runs separately from the review model; a small flash-class model is recommended.',
+    defaultProvider: 'openrouter',
+    // $0.10/$0.50 per 1M (OpenRouter, 2026-10-16), structured outputs supported; fallback: openai/gpt-5.4-nano
+    defaultModel: 'anthropic/claude-haiku-5.5',
   },
   {
     id: 'risk_brief',

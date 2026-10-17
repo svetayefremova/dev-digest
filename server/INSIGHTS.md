@@ -19,6 +19,10 @@ Append-only log of engineering insights captured in `server/`. Written by the `e
 
 - 2026-10-10 — `container.git.readFile(ref, path)` resolves against THIS checkout's `DEVDIGEST_CLONE_DIR` (`clonePathFor`), not the repo row's `clone_path`. Because the dev Postgres is shared across checkouts, `repos.clone_path` can point into another checkout's `clones/` while this one has none: the repo reads as "cloned", yet every `git.readFile` fails. Seen as `POST /repos/:id/conventions/extract` → 422 "No files to analyse" (Run Scan did nothing but toast). Diagnostic: `select clone_path from repos` vs `ls server/clones`. Fix used: read sampled files from the row's `clonePath` with `node:fs`, as repo-intel does (`src/modules/conventions/service.ts` `readSamples`). Anything still going through `container.git` (diffs for reviews) has the same exposure.
 
+- 2026-10-16 — `agent_runs` has no agent-name column: run history gets `agent_name` from a LEFT JOIN on `agents` (`modules/reviews/repository/run.repo.ts` `listRunsForPull`/`activeRunsForPull`), so agent-less runs (the PR intent classifier, `agent_id` NULL) need `agent_runs.label` (migration `0018`) to show a name. Every `agent_runs` row for a PR now includes the classifier row, so anything counting a PR's runs (e.g. `waitForPrRuns(..., { expected: 1 })` in `test/reviews.it.test.ts`) can see the classifier's row finish before the review does.
+
+- 2026-10-16 — Prompt observability without breaking reviewer-core purity: the core returns content-free `sections` metadata from `assemblePrompt` and hands it to the injected `ReviewInput.onPromptAssembled` callback; the server logs it via `platform/prompt-log.ts`, which builds the log object from an explicit allowlist (never spreads input). Section texts cross the boundary only when `promptDebug` is set (local verbose mode), and are used only for hashing/token counts. Keep new prompt sections registered via `push()` in `reviewer-core/src/prompt.ts` so they show up in the metadata.
+
 ## Tool & Library Notes
 
 <!-- - 2026-XX-XX — dependency quirk, version gotcha, config surprise (file:line) -->

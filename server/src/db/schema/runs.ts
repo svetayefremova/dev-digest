@@ -14,6 +14,8 @@ export const agentRuns = pgTable(
       .notNull()
       .references(() => workspaces.id, { onDelete: 'cascade' }),
     agentId: uuid('agent_id').references(() => agents.id, { onDelete: 'set null' }),
+    /** Display name for runs with no agent (e.g. 'Intent classifier'); null for agent runs. */
+    label: text('label'),
     prId: uuid('pr_id').references(() => pullRequests.id, { onDelete: 'set null' }),
     ranAt: timestamp('ran_at', { withTimezone: true }).defaultNow().notNull(),
     provider: text('provider'),

@@ -123,12 +123,31 @@ export class OctokitGitHubClient implements GitHubClient {
     );
   }
 
-  /** linked issue via regex on PR body (#123 / closes #123). */
+  /**
+   * Linked issue from the PR body: only an explicit closing keyword
+   * (`closes #12`, `fixes owner/repo#12`) or an issue/pull URL counts. A bare
+   * `#123` mention is NOT a link. Cross-repo references are ignored.
+   */
   private async resolveLinkedIssue(repo: RepoRef, body: string): Promise<IssueMeta | undefined> {
-    const m = body.match(/(?:closes|fixes|resolves)?\s*#(\d+)/i);
-    if (!m?.[1]) return undefined;
+    const keyword = body.match(
+      /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s+(?:([\w.-]+)\/([\w.-]+))?#(\d+)\b/i,
+    );
+    const url = body.match(
+      /https:\/\/github\.com\/([\w.-]+)\/([\w.-]+)\/(?:issues|pull)\/(\d+)\b/i,
+    );
+    const hit = keyword
+      ? { owner: keyword[1], name: keyword[2], n: keyword[3] }
+      : url
+        ? { owner: url[1], name: url[2], n: url[3] }
+        : undefined;
+    if (!hit?.n) return undefined;
+    const sameRepo =
+      (!hit.owner && !hit.name) ||
+      (hit.owner?.toLowerCase() === repo.owner.toLowerCase() &&
+        hit.name?.toLowerCase() === repo.name.toLowerCase());
+    if (!sameRepo) return undefined;
     try {
-      return await this.getIssue(repo, Number(m[1]));
+      return await this.getIssue(repo, Number(hit.n));
     } catch {
       return undefined;
     }

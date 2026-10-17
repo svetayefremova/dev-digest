@@ -18,6 +18,7 @@ export async function activeRunsForPull(
       agentId: t.agentRuns.agentId,
       ranAt: t.agentRuns.ranAt,
       agentName: t.agents.name,
+      label: t.agentRuns.label,
     })
     .from(t.agentRuns)
     .leftJoin(t.agents, eq(t.agents.id, t.agentRuns.agentId))
@@ -31,7 +32,7 @@ export async function activeRunsForPull(
   return rows.map((r) => ({
     run_id: r.id,
     agent_id: r.agentId,
-    agent_name: r.agentName ?? null,
+    agent_name: r.agentName ?? r.label ?? null,
     ran_at: r.ranAt ? r.ranAt.toISOString() : null,
   }));
 }
@@ -51,7 +52,7 @@ export async function listRunsForPull(
   return rows.map(({ run, agentName }) => ({
     run_id: run.id,
     agent_id: run.agentId,
-    agent_name: agentName ?? null,
+    agent_name: agentName ?? run.label ?? null,
     provider: run.provider,
     model: run.model,
     status: run.status,
@@ -123,6 +124,7 @@ export async function createAgentRun(
     prId: string;
     provider: string | null;
     model: string | null;
+    label?: string | null;
   },
 ): Promise<string> {
   const [row] = await db
@@ -130,6 +132,7 @@ export async function createAgentRun(
     .values({
       workspaceId: values.workspaceId,
       agentId: values.agentId,
+      label: values.label ?? null,
       prId: values.prId,
       provider: values.provider,
       model: values.model,

@@ -1,4 +1,5 @@
 import type { ChatMessage, PromptAssembly } from '@devdigest/shared';
+import type { ReviewIntentContext } from './intent/types.js';
 
 /**
  * Prompt assembly + prompt-injection hardening.
@@ -36,6 +37,27 @@ export function wrapUntrusted(label: string, content: string): string {
 /** Cap the PR description so a huge author body can't blow the token budget. */
 const MAX_PR_DESCRIPTION_CHARS = 4000;
 
+/** Cap for the short intent text recorded on the run trace. */
+const MAX_INTENT_SUMMARY_CHARS = 500;
+
+function renderIntent(intent: ReviewIntentContext): string {
+  const list = (items: string[]) => (items.length > 0 ? items.map((i) => `- ${i}`).join('\n') : '- (none stated)');
+  const lines = [
+    `confidence: ${intent.confidence}${intent.stale ? ' (derived from an earlier commit; may be stale)' : ''}`,
+    `summary: ${intent.summary}`,
+    `in scope:\n${list(intent.in_scope)}`,
+    `out of scope:\n${list(intent.out_of_scope)}`,
+  ];
+  if (intent.missing_context.length > 0) {
+    lines.push(`missing context:\n${list(intent.missing_context)}`);
+  }
+  return (
+    `${wrapUntrusted('pr-intent', lines.join('\n'))}\n` +
+    'For each finding set `out_of_scope: true` if it concerns code outside the in-scope list; ' +
+    'intent never makes a real security/correctness defect acceptable.'
+  );
+}
+
 export interface PromptParts {
   /** Agent's system prompt (trusted). */
   system: string;
@@ -70,16 +92,74 @@ export interface PromptParts {
    * undefined → section omitted.
    */
   prDescription?: string;
+  /**
+   * Classified PR intent (derived from untrusted content, so delimiter-wrapped).
+   * Rendered immediately before `## PR description`. Undefined → section omitted
+   * and the prompt is byte-identical to the no-intent form.
+   */
+  intent?: ReviewIntentContext;
   /** The unified diff / user task (untrusted content). */
   diff: string;
   /** Optional task framing line, e.g. "Review PR #482 '…'". */
   task?: string;
 }
 
+export type PromptSectionName =
+  | 'system'
+  | 'injection_guard'
+  | 'task'
+  | 'intent'
+  | 'pr_description'
+  | 'skills'
+  | 'memory'
+  | 'repo_map'
+  | 'specs'
+  | 'callers'
+  | 'diff';
+
+export type PromptSectionSource =
+  | 'agent'
+  | 'core'
+  | 'pr-author'
+  | 'intent-classifier'
+  | 'skills-db'
+  | 'memory'
+  | 'repo-intel'
+  | 'specs'
+  | 'diff';
+
+/**
+ * Content-free description of one rendered prompt section — safe to log.
+ * Sizes only: never carries the section text itself.
+ */
+export interface PromptSectionMeta {
+  name: PromptSectionName;
+  source: PromptSectionSource;
+  /** false → delimiter-wrapped untrusted data. */
+  trusted: boolean;
+  /** Length of the rendered section (heading + wrapper included). */
+  chars: number;
+  /** ceil(chars / 4) — same heuristic as the intent PromptStats. */
+  est_tokens: number;
+  /** Element count for list sections (skills / memory / specs). */
+  items?: number;
+  /** Per-element raw sizes for list sections (skills / memory / specs). */
+  items_chars?: number[];
+}
+
 export interface AssembledPrompt {
   messages: ChatMessage[];
   assembly: PromptAssembly;
+  /** Section metadata in prompt order (system message first). Content-free. */
+  sections: PromptSectionMeta[];
+  /**
+   * Rendered text of each section, index-aligned with `sections`. For local
+   * debugging (hashing / exact token counts) only — callers must never log it.
+   */
+  sectionTexts: string[];
 }
+
+const estTokens = (chars: number) => Math.ceil(chars / 4);
 
 /**
  * Assemble the messages array + the PromptAssembly record for the run trace.
@@ -105,23 +185,66 @@ export function assemblePrompt(parts: PromptParts): AssembledPrompt {
       ? parts.prDescription.slice(0, MAX_PR_DESCRIPTION_CHARS)
       : undefined;
 
+  const intentBlock = parts.intent ? renderIntent(parts.intent) : undefined;
+
+  const sections: PromptSectionMeta[] = [];
+  const sectionTexts: string[] = [];
+  const track = (
+    name: PromptSectionName,
+    source: PromptSectionSource,
+    trusted: boolean,
+    text: string,
+    items?: string[],
+  ) => {
+    sections.push({
+      name,
+      source,
+      trusted,
+      chars: text.length,
+      est_tokens: estTokens(text.length),
+      ...(items ? { items: items.length, items_chars: items.map((i) => i.length) } : {}),
+    });
+    sectionTexts.push(text);
+  };
+  track('system', 'agent', true, parts.system);
+  track('injection_guard', 'core', true, INJECTION_GUARD);
+
   const userSections: string[] = [];
-  if (parts.task) userSections.push(parts.task);
+  const push = (
+    name: PromptSectionName,
+    source: PromptSectionSource,
+    trusted: boolean,
+    text: string,
+    items?: string[],
+  ) => {
+    userSections.push(text);
+    track(name, source, trusted, text, items);
+  };
+  if (parts.task) push('task', 'agent', true, parts.task);
+  if (intentBlock) push('intent', 'intent-classifier', false, `## PR intent\n${intentBlock}`);
   if (prDescription) {
-    userSections.push(`## PR description\n${wrapUntrusted('pr-description', prDescription)}`);
+    push(
+      'pr_description',
+      'pr-author',
+      false,
+      `## PR description\n${wrapUntrusted('pr-description', prDescription)}`,
+    );
   }
-  if (skillsBlock) userSections.push(`## Skills / rules\n${skillsBlock}`);
-  if (memoryBlock) userSections.push(`## Relevant memory\n${memoryBlock}`);
+  if (skillsBlock) push('skills', 'skills-db', true, `## Skills / rules\n${skillsBlock}`, parts.skills);
+  if (memoryBlock) push('memory', 'memory', true, `## Relevant memory\n${memoryBlock}`, parts.memory);
   if (parts.repoMap && parts.repoMap.trim().length > 0) {
-    userSections.push(`## Repo skeleton\n${wrapUntrusted('repo-map', parts.repoMap)}`);
+    push('repo_map', 'repo-intel', false, `## Repo skeleton\n${wrapUntrusted('repo-map', parts.repoMap)}`);
   }
-  if (specsBlock) userSections.push(`## Project context\n${specsBlock}`);
+  if (specsBlock) push('specs', 'specs', false, `## Project context\n${specsBlock}`, parts.specs);
   if (parts.callers && parts.callers.trim().length > 0) {
-    userSections.push(
+    push(
+      'callers',
+      'repo-intel',
+      false,
       `## Callers of changed symbols\n${wrapUntrusted('callers', parts.callers)}`,
     );
   }
-  userSections.push(`## Diff to review\n${wrapUntrusted('diff', parts.diff)}`);
+  push('diff', 'diff', false, `## Diff to review\n${wrapUntrusted('diff', parts.diff)}`);
 
   const user = userSections.join('\n\n');
 
@@ -138,8 +261,9 @@ export function assemblePrompt(parts: PromptParts): AssembledPrompt {
     callers: parts.callers ?? null,
     repo_map: parts.repoMap ?? null,
     pr_description: prDescription ?? null,
+    intent: parts.intent ? parts.intent.summary.slice(0, MAX_INTENT_SUMMARY_CHARS) : null,
     user,
   };
 
-  return { messages, assembly };
+  return { messages, assembly, sections, sectionTexts };
 }

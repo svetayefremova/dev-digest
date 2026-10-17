@@ -38,6 +38,7 @@ export const s = {
     color: muted ? "var(--text-muted)" : "var(--text-primary)",
     textDecoration: dismissed ? "line-through" : "none",
   }),
+  outOfScopeTag: { fontSize: 12, fontWeight: 600, color: "var(--warn)" } satisfies CSSProperties,
   acceptedTag: { fontSize: 12, fontWeight: 600, color: "var(--ok)" } satisfies CSSProperties,
   dismissedTag: {
     fontSize: 12,

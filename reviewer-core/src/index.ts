@@ -17,6 +17,9 @@ export {
   wrapUntrusted,
   type PromptParts,
   type AssembledPrompt,
+  type PromptSectionMeta,
+  type PromptSectionName,
+  type PromptSectionSource,
 } from './prompt.js';
 
 // Citation grounding — the mandatory mechanical gate for diff findings.
@@ -42,9 +45,28 @@ export {
   type ReviewInput,
   type ReviewOutcome,
   type ReviewEvent,
+  type PromptAssembledInfo,
   type ReviewStrategy,
   type ReviewMode,
 } from './review/run.js';
+
+// PR intent: cheap classifier (pure; LLM injected) + scope filter for reviews.
+export {
+  classifyIntent,
+  buildIntentPrompt,
+  computeConfidence,
+  isMeaningfulBody,
+  INTENT_SYSTEM_PROMPT,
+  type ClassifyResult,
+  type BuiltIntentPrompt,
+  type ConfidenceInput,
+  type IntentInput,
+  type IntentDoc,
+  type IntentFileSummary,
+  type PromptStats,
+  type ReviewIntentContext,
+} from './intent/index.js';
+export { applyIntentScope, type IntentScopeResult } from './review/scope.js';
 
 // Output: grounded Review → GitHubReviewPayload (body + inline comments + event).
 export {

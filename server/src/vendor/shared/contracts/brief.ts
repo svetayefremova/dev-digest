@@ -7,11 +7,37 @@ import { z } from 'zod';
 
 // ---- Intent ----
 export const Intent = z.object({
-  intent: z.string(),
+  summary: z.string(),
   in_scope: z.array(z.string()),
   out_of_scope: z.array(z.string()),
 });
 export type Intent = z.infer<typeof Intent>;
+
+export const IntentConfidence = z.enum(['high', 'medium', 'low']);
+export type IntentConfidence = z.infer<typeof IntentConfidence>;
+
+export const IntentSourceKind = z.enum([
+  'title',
+  'description',
+  'linked_issue',
+  'plan',
+  'spec',
+  'files',
+]);
+export type IntentSourceKind = z.infer<typeof IntentSourceKind>;
+
+export const IntentSourceStatus = z.enum(['used', 'unavailable', 'truncated']);
+export type IntentSourceStatus = z.infer<typeof IntentSourceStatus>;
+
+/** One input the intent classifier looked at (metadata only, never content). */
+export const IntentSource = z.object({
+  kind: IntentSourceKind,
+  ref: z.string(),
+  status: IntentSourceStatus,
+  chars: z.number().int(),
+  reason: z.string().nullish(),
+});
+export type IntentSource = z.infer<typeof IntentSource>;
 
 // ---- Blast radius ----
 export const ChangedSymbol = z.object({

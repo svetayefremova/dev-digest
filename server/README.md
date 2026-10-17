@@ -100,7 +100,14 @@ flowchart TB
 | `REPO_INTEL_ENABLED` | `true` | repo skeleton + callers in the prompt; `false` → ripgrep-only |
 | `DEVDIGEST_CLONE_DIR` | `./clones` | imported-repo checkouts (git-ignored) |
 | `LOG_LEVEL` | `info` (`silent` in test) | pino level |
+| `PROMPT_LOG_VERBOSE` | `false` | `true` adds per-section sha256 prefixes, item sizes and exact tiktoken counts to the `prompt.assembled` log; honored **only** with `NODE_ENV=development` (ignored with a boot warning elsewhere). Never logs prompt content |
 | `NODE_ENV` | `development` | `test` → silent logs + global rate-limit disabled |
+
+Every review prompt emits one stdout-only `prompt.assembled` log line per LLM
+call (`platform/prompt-log.ts`): section name, source, trusted flag, chars and
+estimated tokens, plus model, `runId` and `correlationId` (= Fastify `reqId`;
+send `x-request-id` to set it). Built from an allowlist — no diff, PR body,
+spec or skill text. It is not part of the Live Log or the run trace.
 
 Secrets (API keys, `GITHUB_TOKEN`) are **not** part of `AppConfig` — they go
 through `SecretsProvider` (`~/.devdigest/secrets.json`, mode `0600`, with
