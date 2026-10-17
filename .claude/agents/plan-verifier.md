@@ -45,6 +45,7 @@ Read the whole plan first, then build the item list **before** you open any impl
 |---|---|---|
 | `G1..` | `## Goal` | each sentence |
 | `NG1..` | `## Non-goals` | each bullet; verified as "not done" (the diff must not contain it) |
+| `AC1..` | `## Acceptance criteria` | each table row, keeping its ID and priority; verified against the code and checks, not against the "Delivered by" column. A `None given` section creates no rows |
 | `IA1..` | `## Context` → `INSIGHTS applied` | each bullet; verified by the diff honouring the stated consequence |
 | `CA1..` | `## Context` → `Constraints applied` | each bullet |
 | `S<n>.F<k>` | step `S<n>` → `Files` | each file line (create/modify, path, stated change); the file must exist or be modified as stated |
@@ -55,7 +56,7 @@ Read the whole plan first, then build the item list **before** you open any impl
 | `CT1..` | `## Contracts & DB` → `Contracts` | each contract line; when a contract is named, check **both** `server/src/vendor/shared` and `client/src/vendor/shared` |
 | `DB1..` | `## Contracts & DB` → `DB` | each DB line (schema change, generated migration; no `db:migrate`) |
 | `V1..` | `## Verification` | each table row (one command per row) |
-| `R1..` | extra requirements from the input | each requirement |
+| `R1..` | extra requirements from the input | each requirement that is not already an `AC` row (a duplicate gets no new row; note it under Summary) |
 
 `## Skills per module`, `## Out of scope / handed off` and `## Risks & open questions` are context, not criteria. Read them to interpret items, but do not create rows for them unless an item refers to them. When a section says `none` / `None` (for example `Contracts: none`), still create the row and verify the diff contains no such change.
 
@@ -95,6 +96,7 @@ Status: VERIFIED | GAPS | BLOCKED
 ## Summary
 - Items: <N> · met <n> · partial <n> · not met <n> · not verifiable <n>
 - Plan status note: <draft/approved note | None>
+- Acceptance criteria: <P1 met n/N · P2 met n/N · P3 met n/N | None given>
 
 ## Traceability matrix
 | ID | Status | Evidence |

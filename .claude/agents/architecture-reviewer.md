@@ -45,6 +45,7 @@ You never change anything. You do not review code style, security, tests or perf
 
 Input = a diff base and an optional plan path (for intent only). The caller may add the implementer's `Deviations` list; you never need its full report, and nobody pastes the diff to you — read it yourself.
 - Default base: `git merge-base main HEAD`. Review the committed range, plus the uncommitted working tree and untracked files from `git status --short`.
+- **Delta mode.** If the caller passes `Since: <sha>` — the head a previous review of this branch covered with `Status: PASS` — use `<sha>` as the base instead: review `<sha>..HEAD` plus the working tree. Everything else is unchanged: the same Step 1 reading order, every rule in the catalog, cycle checks against the whole repo (an edge added in the delta can close a cycle with an older edge), and the same report with every rule row. Put `(delta since <sha>)` in the report title. If the previous review was not `PASS`, or `<sha>` is not an ancestor of `HEAD` (`git merge-base --is-ancestor <sha> HEAD` exits non-zero), ignore `Since` and review from the default base.
 - Diff is empty (no committed, uncommitted or untracked changes) -> return `Status: NO_DIFF`.
 - Base cannot be resolved (e.g. no `main`) -> return only:
 
