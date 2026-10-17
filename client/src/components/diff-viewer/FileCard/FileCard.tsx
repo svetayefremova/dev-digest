@@ -20,6 +20,7 @@ import { s, chevronFor } from "../styles";
 import { CodeLine } from "../CodeLine";
 import { OutdatedComments } from "../OutdatedComments";
 import { FindingsNotInDiff } from "../FindingsNotInDiff";
+import { GroupExpandContext } from "../FileGroup";
 
 /** Threads anchored to a given parsed line (RIGHT=new, LEFT=old). */
 function threadsForLine(ln: Line, matched: Map<string, CommentThread[]>): CommentThread[] {
@@ -47,6 +48,11 @@ export function FileCard({
   const [open, setOpen] = React.useState(
     defaultOpen ?? (file.additions ?? 0) + (file.deletions ?? 0) <= AUTO_EXPAND_MAX_LINES
   );
+  // Group-level "expand / collapse all files" (no-op outside a FileGroup).
+  const expandAll = React.useContext(GroupExpandContext);
+  React.useEffect(() => {
+    if (expandAll) setOpen(expandAll.open);
+  }, [expandAll]);
   const lines = React.useMemo(() => parsePatch(file.patch), [file.patch]);
 
   // Group this file's comments into threads, then split into ones we can anchor

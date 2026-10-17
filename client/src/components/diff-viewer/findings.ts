@@ -32,7 +32,12 @@ export interface DiffFileGroup {
   id: string;
   label: string;
   hint: string;
-  meta: string;
+  /** e.g. "61 files". */
+  filesLabel: string;
+  /** Findings in this group (0 hides the red counter). */
+  findingCount: number;
+  /** Accessible description of the counter, e.g. "5 findings in 3 files". */
+  findingsTitle?: string;
   color: string;
   files: PrFile[];
   defaultOpen?: boolean;

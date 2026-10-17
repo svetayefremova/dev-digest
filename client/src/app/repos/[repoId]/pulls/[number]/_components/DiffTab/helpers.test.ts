@@ -42,6 +42,7 @@ describe("DiffTab helpers", () => {
     expect(groups[0]!.files.map((f) => f.path)).toEqual(["src/a.ts", "src/new.ts"]);
     expect(groups[0]!.files[0]!.patch).toBe("PATCH-A");
     expect(groups[0]!.withFindings).toBe(1);
+    expect(groups[0]!.findingCount).toBe(2);
     expect(groups[1]!.withFindings).toBe(0);
   });
 });

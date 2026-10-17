@@ -48,6 +48,8 @@
       "WARNING": "warning",
       "SUGGESTION": "suggestion",
       "INFO": "info"
-    }
+    },
+    "expandAllFiles": "Expand all files",
+    "collapseAllFiles": "Collapse all files"
   }
 }

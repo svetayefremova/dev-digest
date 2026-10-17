@@ -1,1 +1,1 @@
-export { FileGroup } from "./FileGroup";
+export { FileGroup, GroupExpandContext } from "./FileGroup";

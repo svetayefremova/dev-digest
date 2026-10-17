@@ -27,6 +27,7 @@ export interface ViewerGroup {
   role: SmartDiffRole;
   files: PrFile[];
   withFindings: number;
+  findingCount: number;
 }
 
 /** Map server groups onto PrFiles; files the server didn't list land in `core` so none are hidden. */
@@ -55,6 +56,14 @@ export function toViewerGroups(
   return SMART_DIFF_ROLES.flatMap((role) => {
     const list = filesByRole.get(role);
     if (!list || list.length === 0) return [];
-    return [{ role, files: list, withFindings: list.filter((f) => (byPath.get(f.path)?.length ?? 0) > 0).length }];
+    const counts = list.map((f) => byPath.get(f.path)?.length ?? 0);
+    return [
+      {
+        role,
+        files: list,
+        withFindings: counts.filter((c) => c > 0).length,
+        findingCount: counts.reduce((a, c) => a + c, 0),
+      },
+    ];
   });
 }

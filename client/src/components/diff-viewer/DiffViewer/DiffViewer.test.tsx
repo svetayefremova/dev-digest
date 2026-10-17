@@ -69,9 +69,9 @@ describe("DiffViewer", () => {
 
   it("renders groups in order with meta; collapsed groups open on click", () => {
     const groups: DiffFileGroup[] = [
-      { id: "core", label: "Core", hint: "h", meta: "1 files", color: "red", files: [file("src/a.ts", "core-line")] },
-      { id: "docs", label: "Docs", hint: "h", meta: "1 files", color: "red", defaultOpen: false, files: [file("README.md", "docs-line")] },
-      { id: "boilerplate", label: "Boilerplate", hint: "h", meta: "1 files · 1 with findings", color: "red", defaultOpen: false, files: [file("package-lock.json", "lock-line")] },
+      { id: "core", label: "Core", hint: "h", filesLabel: "1 file", findingCount: 0, color: "red", files: [file("src/a.ts", "core-line")] },
+      { id: "docs", label: "Docs", hint: "h", filesLabel: "1 file", findingCount: 0, color: "red", defaultOpen: false, files: [file("README.md", "docs-line")] },
+      { id: "boilerplate", label: "Boilerplate", hint: "h", filesLabel: "1 file", findingCount: 3, findingsTitle: "3 findings in 1 file", color: "red", defaultOpen: false, files: [file("package-lock.json", "lock-line")] },
     ];
     render(
       <NextIntlClientProvider locale="en" messages={{ shell: shellMessages }}>
@@ -81,12 +81,23 @@ describe("DiffViewer", () => {
 
     expect(screen.getAllByRole("heading").map((h) => h.textContent)).toEqual(["Core", "Docs", "Boilerplate"]);
     expect(screen.getAllByRole("region")).toHaveLength(3);
-    expect(screen.getByText("1 files · 1 with findings")).toBeInTheDocument();
+    expect(screen.getByLabelText("3 findings in 1 file")).toHaveTextContent("3");
     expect(screen.getByText("core-line")).toBeInTheDocument();
     expect(screen.queryByText("docs-line")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByText("README.md"));
     expect(screen.getByText("docs-line")).toBeInTheDocument();
+
+    // Accordion: the group header hides/shows its files.
+    fireEvent.click(screen.getByRole("button", { name: /Core/ }));
+    expect(screen.queryByText("src/a.ts")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Core/ }));
+    expect(screen.getByText("src/a.ts")).toBeInTheDocument();
+
+    // Expand-all opens the collapsed boilerplate file.
+    const boiler = screen.getByRole("region", { name: "Boilerplate" });
+    fireEvent.click(within(boiler).getByRole("button", { name: "Expand all files" }));
+    expect(screen.getByText("lock-line")).toBeInTheDocument();
   });
 
   it("overlays findings on their line, with off-patch ones listed under the file", () => {

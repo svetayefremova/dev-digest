@@ -64,7 +64,6 @@
     "smartOrder": "Smart order",
     "originalOrder": "Original order",
     "orderToggleLabel": "File order",
-    "filesWithFindings": "{count} with findings",
     "largeTitle": "This PR is large ({lines} changed lines)",
     "largeBody": "Consider splitting it into smaller, focused PRs for easier review:",
     "filesCount": "{count, plural, one {# file} other {# files}}",
@@ -73,7 +72,8 @@
     "showComments": "Show comments ({count})",
     "hideComments": "Hide comments ({count})",
     "noReviewYet": "No review yet — run a review to see findings next to the code.",
-    "reviewerOrdered": "Reviewer-ordered diff"
+    "reviewerOrdered": "Reviewer-ordered diff",
+    "findingsInFiles": "{count, plural, one {# finding} other {# findings}} in {files, plural, one {# file} other {# files}}"
   },
   "list": {
     "breadcrumb": "Pull Requests",

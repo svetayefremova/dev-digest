@@ -95,9 +95,9 @@ export function DiffTab({ prId, filesCount, additions, deletions, files, canComm
           id: g.role,
           label: t(ROLE_LABEL_KEY[g.role]),
           hint: t(ROLE_HINT_KEY[g.role]),
-          meta:
-            t("smartDiff.filesCount", { count: g.files.length }) +
-            (g.withFindings > 0 ? " · " + t("smartDiff.filesWithFindings", { count: g.withFindings }) : ""),
+          filesLabel: t("smartDiff.filesCount", { count: g.files.length }),
+          findingCount: g.findingCount,
+          findingsTitle: t("smartDiff.findingsInFiles", { count: g.findingCount, files: g.withFindings }),
           color: ROLE_COLOR[g.role],
           files: g.files,
           defaultOpen: COLLAPSED_ROLES.has(g.role) ? false : undefined,
