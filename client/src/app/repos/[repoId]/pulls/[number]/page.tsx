@@ -169,6 +169,7 @@ function PRDetailPageInner() {
               invalidateActiveRuns();
               invalidateRunHistory();
               refetchReviews();
+              if (prId) qc.invalidateQueries({ queryKey: ["smart-diff", prId] });
             }}
           />
         )}
@@ -179,6 +180,8 @@ function PRDetailPageInner() {
             filesCount={pr.files_count}
             files={pr.files}
             canComment={pr.status === "open"}
+            repoFullName={repoFullName}
+            headSha={pr.head_sha}
           />
         )}
       </div>

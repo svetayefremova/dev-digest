@@ -15,9 +15,11 @@ import {
   type CommentThread,
   type DiffCommentApi,
 } from "../comments";
+import { partitionFindings, findingsForLine, type DiffFindingApi } from "../findings";
 import { s, chevronFor } from "../styles";
 import { CodeLine } from "../CodeLine";
 import { OutdatedComments } from "../OutdatedComments";
+import { FindingsNotInDiff } from "../FindingsNotInDiff";
 
 /** Threads anchored to a given parsed line (RIGHT=new, LEFT=old). */
 function threadsForLine(ln: Line, matched: Map<string, CommentThread[]>): CommentThread[] {
@@ -30,10 +32,20 @@ function threadsForLine(ln: Line, matched: Map<string, CommentThread[]>): Commen
   return out;
 }
 
-export function FileCard({ file, commenting }: { file: PrFile; commenting?: DiffCommentApi }) {
+export function FileCard({
+  file,
+  commenting,
+  findings,
+  defaultOpen,
+}: {
+  file: PrFile;
+  commenting?: DiffCommentApi;
+  findings?: DiffFindingApi;
+  defaultOpen?: boolean;
+}) {
   const t = useTranslations("shell");
   const [open, setOpen] = React.useState(
-    (file.additions ?? 0) + (file.deletions ?? 0) <= AUTO_EXPAND_MAX_LINES
+    defaultOpen ?? (file.additions ?? 0) + (file.deletions ?? 0) <= AUTO_EXPAND_MAX_LINES
   );
   const lines = React.useMemo(() => parsePatch(file.patch), [file.patch]);
 
@@ -48,6 +60,13 @@ export function FileCard({ file, commenting }: { file: PrFile; commenting?: Diff
     return partitionThreads(fileThreads, renderedKeys);
   }, [comments, file.path, lines]);
 
+  const fileFindings = findings?.byPath.get(file.path);
+  const { byLine, offPatch } = React.useMemo(
+    () => partitionFindings(fileFindings ?? [], lines),
+    [fileFindings, lines]
+  );
+  const findingCount = fileFindings?.length ?? 0;
+
   const commentCount = commenting
     ? commenting.comments.filter((c) => c.path === file.path).length
     : 0;
@@ -60,6 +79,14 @@ export function FileCard({ file, commenting }: { file: PrFile; commenting?: Diff
         <span className="mono" style={s.filePath}>
           {file.path}
         </span>
+        {findingCount > 0 && (
+          <span
+            role="img"
+            aria-label={t("diffViewer.fileHasFindings", { count: findingCount })}
+            title={t("diffViewer.fileHasFindings", { count: findingCount })}
+            style={s.findingDot}
+          />
+        )}
         <span className="mono tnum" style={s.fileStat}>
           <span style={s.addText}>+{file.additions}</span>{" "}
           <span style={s.delText}>−{file.deletions}</span>
@@ -85,10 +112,16 @@ export function FileCard({ file, commenting }: { file: PrFile; commenting?: Diff
                 path={file.path}
                 threads={threadsForLine(ln, matched)}
                 commenting={commenting}
+                findings={
+                  findings
+                    ? { list: findingsForLine(ln, byLine), render: findings.render, show: findings.show }
+                    : undefined
+                }
               />
             ))
           )}
           {commenting && commenting.showComments && <OutdatedComments threads={outdated} />}
+          {findings && findings.show && <FindingsNotInDiff findings={offPatch} render={findings.render} />}
         </div>
       )}
     </div>

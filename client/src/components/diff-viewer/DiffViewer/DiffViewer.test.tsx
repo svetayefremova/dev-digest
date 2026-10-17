@@ -6,7 +6,9 @@
  * used to sit at that index.
  */
 import { describe, it, expect, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, within, fireEvent } from "@testing-library/react";
+import type { FindingRecord } from "@devdigest/shared";
+import type { DiffFileGroup, DiffFindingApi } from "../findings";
 import { NextIntlClientProvider } from "next-intl";
 import type { PrFile } from "@/lib/types";
 import shellMessages from "../../../../messages/en/shell.json";
@@ -63,5 +65,74 @@ describe("DiffViewer", () => {
     expect(screen.queryByText("src/a.ts")).not.toBeInTheDocument();
     expect(screen.getByText("src/b.ts")).toBeInTheDocument();
     expect(screen.getByText("const more = 3;")).toBeInTheDocument();
+  });
+
+  it("renders groups in order with meta; collapsed groups open on click", () => {
+    const groups: DiffFileGroup[] = [
+      { id: "core", label: "Core", hint: "h", meta: "1 files", color: "red", files: [file("src/a.ts", "core-line")] },
+      { id: "docs", label: "Docs", hint: "h", meta: "1 files", color: "red", defaultOpen: false, files: [file("README.md", "docs-line")] },
+      { id: "boilerplate", label: "Boilerplate", hint: "h", meta: "1 files · 1 with findings", color: "red", defaultOpen: false, files: [file("package-lock.json", "lock-line")] },
+    ];
+    render(
+      <NextIntlClientProvider locale="en" messages={{ shell: shellMessages }}>
+        <DiffViewer files={groups.flatMap((g) => g.files)} groups={groups} />
+      </NextIntlClientProvider>,
+    );
+
+    expect(screen.getAllByRole("heading").map((h) => h.textContent)).toEqual(["Core", "Docs", "Boilerplate"]);
+    expect(screen.getAllByRole("region")).toHaveLength(3);
+    expect(screen.getByText("1 files · 1 with findings")).toBeInTheDocument();
+    expect(screen.getByText("core-line")).toBeInTheDocument();
+    expect(screen.queryByText("docs-line")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("README.md"));
+    expect(screen.getByText("docs-line")).toBeInTheDocument();
+  });
+
+  it("overlays findings on their line, with off-patch ones listed under the file", () => {
+    const f = (id: string, start_line: number) =>
+      ({ id, title: id, file: "src/a.ts", start_line, severity: "WARNING" }) as unknown as FindingRecord;
+    const list = [f("on-line", 2), f("off-patch", 40)];
+    const findings: DiffFindingApi = {
+      byPath: new Map([["src/a.ts", list]]),
+      render: (x) => <div>{`card: ${x.title}`}</div>,
+      show: true,
+    };
+    render(
+      <NextIntlClientProvider locale="en" messages={{ shell: shellMessages }}>
+        <DiffViewer files={[file("src/a.ts", "const b = 2;")]} findings={findings} />
+      </NextIntlClientProvider>,
+    );
+
+    expect(screen.getByRole("img", { name: /2 finding/ })).toBeInTheDocument();
+    const line = screen.getByText("const b = 2;");
+    const card = screen.getByText("card: on-line");
+    expect(line.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const title = screen.getByText(/outside this diff/);
+    expect(within(title.parentElement as HTMLElement).getByText("card: off-patch")).toBeInTheDocument();
+    expect(screen.getByText("warning")).toBeInTheDocument();
+  });
+
+  it("hides finding cards but keeps the severity label when show is false", () => {
+    const finding = {
+      id: "x", title: "x", file: "src/a.ts", start_line: 2, severity: "CRITICAL",
+    } as unknown as FindingRecord;
+    render(
+      <NextIntlClientProvider locale="en" messages={{ shell: shellMessages }}>
+        <DiffViewer
+          files={[file("src/a.ts", "const b = 2;")]}
+          findings={{ byPath: new Map([["src/a.ts", [finding]]]), render: () => <div>card</div>, show: false }}
+        />
+      </NextIntlClientProvider>,
+    );
+    expect(screen.queryByText("card")).not.toBeInTheDocument();
+    expect(screen.getByText("blocker")).toBeInTheDocument();
+  });
+
+  it("renders a flat list without group headings when no groups are given", () => {
+    renderDiff([file("src/b.ts", "x1"), file("src/a.ts", "x2")]);
+    expect(screen.queryAllByRole("heading")).toHaveLength(0);
+    const paths = screen.getAllByText(/^src\//).map((e) => e.textContent);
+    expect(paths).toEqual(["src/b.ts", "src/a.ts"]);
   });
 });

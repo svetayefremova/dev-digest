@@ -28,6 +28,29 @@ export const s = {
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
   } satisfies CSSProperties,
+  findingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: "50%",
+    background: "var(--crit)",
+    flexShrink: 0,
+  } satisfies CSSProperties,
+  group: { display: "flex", flexDirection: "column", gap: 8 } satisfies CSSProperties,
+  groupHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "8px 2px",
+    position: "sticky",
+    // Sticks under the PR detail header when one publishes its height.
+    top: "var(--pr-header-h, 0px)",
+    zIndex: 2,
+    background: "var(--bg-primary)",
+  } satisfies CSSProperties,
+  groupSwatch: { width: 10, height: 10, borderRadius: 2, flexShrink: 0 } satisfies CSSProperties,
+  groupLabel: { margin: 0, fontSize: 13, fontWeight: 600, color: "var(--text-primary)" } satisfies CSSProperties,
+  groupHint: { fontSize: 12, color: "var(--text-muted)", flex: 1 } satisfies CSSProperties,
+  groupMeta: { fontSize: 12, color: "var(--text-secondary)" } satisfies CSSProperties,
   fileStat: { fontSize: 12 } satisfies CSSProperties,
   addText: { color: "var(--code-add-text)" } satisfies CSSProperties,
   delText: { color: "var(--code-del-text)" } satisfies CSSProperties,
@@ -57,6 +80,15 @@ export const s = {
     userSelect: "none",
     flexShrink: 0,
   } satisfies CSSProperties,
+  lineSeverity: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    fontSize: 11.5,
+    paddingRight: 12,
+    flexShrink: 0,
+    userSelect: "none",
+  } satisfies CSSProperties,
   lineText: {
     flex: 1,
     whiteSpace: "pre-wrap",
@@ -79,6 +111,11 @@ export function chevronFor(open: boolean): CSSProperties {
 export function lineRowFor(kind: Line["kind"]): CSSProperties {
   const background = kind === "add" ? "var(--code-add)" : kind === "del" ? "var(--code-del)" : "transparent";
   return { display: "flex", alignItems: "stretch", fontSize: 13, lineHeight: "20px", background };
+}
+
+/** Left severity stripe on a line that carries a finding. */
+export function findingStripeFor(color: string): CSSProperties {
+  return { boxShadow: `inset 3px 0 0 ${color}` };
 }
 
 /** Gutter sign colour per line kind. */
