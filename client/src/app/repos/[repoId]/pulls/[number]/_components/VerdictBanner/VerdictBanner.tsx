@@ -16,6 +16,7 @@ export function VerdictBanner({
   findingsCount,
   blockers,
   agentName,
+  meta,
 }: {
   verdict: Verdict;
   summary: string | null;
@@ -23,6 +24,8 @@ export function VerdictBanner({
   findingsCount: number;
   blockers: number;
   agentName?: string | null;
+  /** Optional run meta (cost / tokens) shown under the score. */
+  meta?: React.ReactNode;
 }) {
   const t = useTranslations("prReview");
   const m = VERDICT_META[verdict] ?? VERDICT_META.comment;
@@ -51,6 +54,7 @@ export function VerdictBanner({
         <div style={s.scoreCol}>
           <CircularScore score={score} size={52} stroke={5} />
           <span style={s.scoreLabel}>{t("verdict.prScore")}</span>
+          {meta && <div style={s.meta}>{meta}</div>}
         </div>
       )}
     </div>

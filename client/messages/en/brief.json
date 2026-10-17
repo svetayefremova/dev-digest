@@ -15,5 +15,11 @@
     "blame": "blame",
     "noHistory": "No history available for this line.",
     "noCommits": "No commits found for this line."
-  }
+  },
+  "title": "PR brief",
+  "noReview": "No review yet. Run a review to get a verdict, score and review focus.",
+  "focus": {
+    "title": "Review focus — read these first"
+  },
+  "tokens": "{in} → {out} tokens"
 }

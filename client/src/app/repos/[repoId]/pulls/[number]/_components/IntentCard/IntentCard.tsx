@@ -4,21 +4,31 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { Badge, Button, SectionLabel } from "@devdigest/ui";
+import { Badge, Button, Icon, SectionLabel } from "@devdigest/ui";
 import { usePrIntent, useRedetectIntent } from "../../../../../../../lib/hooks/intent";
 import { CONFIDENCE_COLOR } from "./constants";
 import { IntentSources } from "./IntentSources";
 import { s } from "./styles";
 
-function ScopeList({ title, items }: { title: string; items: string[] }) {
+function ScopeList({ kind, items }: { kind: "in" | "out"; items: string[] }) {
   const t = useTranslations("intent");
+  const inScope = kind === "in";
+  const HeadIcon = inScope ? Icon.Check : Icon.X;
   return (
     <div>
-      <div style={s.colTitle}>{title}</div>
+      <div style={s.colTitle(inScope)}>
+        <HeadIcon size={13} />
+        {inScope ? t("inScope") : t("outOfScope")}
+      </div>
       {items.length > 0 ? (
         <ul style={s.list}>
           {items.map((i) => (
-            <li key={i}>{i}</li>
+            <li key={i} style={s.item(inScope)}>
+              <span style={s.dot} aria-hidden>
+                ·
+              </span>
+              {i}
+            </li>
           ))}
         </ul>
       ) : (
@@ -44,10 +54,10 @@ export function IntentCard({ prId }: { prId: string }) {
   } else {
     content = (
       <>
-        <p style={s.summary}>{intent.summary}</p>
+        <p style={s.summary}>“{intent.summary}”</p>
         <div style={s.columns}>
-          <ScopeList title={t("inScope")} items={intent.in_scope} />
-          <ScopeList title={t("outOfScope")} items={intent.out_of_scope} />
+          <ScopeList kind="in" items={intent.in_scope} />
+          <ScopeList kind="out" items={intent.out_of_scope} />
         </div>
         {intent.confidence === "low" && (
           <div style={s.banner("var(--warn)")}>{t("lowBanner")}</div>
@@ -57,36 +67,45 @@ export function IntentCard({ prId }: { prId: string }) {
             {t("missingBanner")} {intent.missing_context.join("; ")}
           </div>
         )}
-        <IntentSources sources={intent.sources} />
+        {intent.sources.length > 0 && (
+          <div style={s.footer}>
+            <IntentSources sources={intent.sources} />
+          </div>
+        )}
       </>
     );
   }
 
   return (
     <section style={s.card}>
-      <div style={s.header}>
-        <SectionLabel icon="Target">{t("title")}</SectionLabel>
-        {intent && (
-          <Badge color={CONFIDENCE_COLOR[intent.confidence]}>
-            {t(`confidence.${intent.confidence}`)}
-          </Badge>
-        )}
-        {intent?.stale && (
-          <span title={t("staleHint")}>
-            <Badge color="var(--warn)">{t("stale")}</Badge>
-          </span>
-        )}
-        <span style={s.spacer} />
-        <Button
-          kind="ghost"
-          size="sm"
-          icon="RefreshCw"
-          disabled={busy || isLoading}
-          onClick={() => redetect.mutate()}
-        >
-          {busy ? t("detecting") : intent ? t("redetect") : t("detect")}
-        </Button>
-      </div>
+      <SectionLabel
+        icon="Target"
+        right={
+          <div style={s.headerRight}>
+            {intent && (
+              <Badge color={CONFIDENCE_COLOR[intent.confidence]}>
+                {t(`confidence.${intent.confidence}`)}
+              </Badge>
+            )}
+            {intent?.stale && (
+              <span title={t("staleHint")}>
+                <Badge color="var(--warn)">{t("stale")}</Badge>
+              </span>
+            )}
+            <Button
+              kind="ghost"
+              size="sm"
+              icon="RefreshCw"
+              disabled={busy || isLoading}
+              onClick={() => redetect.mutate()}
+            >
+              {busy ? t("detecting") : intent ? t("redetect") : t("detect")}
+            </Button>
+          </div>
+        }
+      >
+        {t("title")}
+      </SectionLabel>
       {content}
       {redetect.isError && <span style={s.muted}>{t("detectFailed")}</span>}
     </section>

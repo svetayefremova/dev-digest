@@ -137,7 +137,16 @@ function PRDetailPageInner() {
       />
 
       <div style={s.contentWrap}>
-        {tab === "overview" && <OverviewTab prId={prId} prBody={pr.body} />}
+        {tab === "overview" && (
+          <OverviewTab
+            prId={prId}
+            prBody={pr.body}
+            reviews={runs}
+            prRuns={prRuns}
+            repoFullName={repoFullName}
+            headSha={pr.head_sha}
+          />
+        )}
 
         {tab === "findings" && (
           <FindingsTab

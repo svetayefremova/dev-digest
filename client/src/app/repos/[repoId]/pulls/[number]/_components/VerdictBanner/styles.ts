@@ -47,4 +47,16 @@ export const s = {
     color: "var(--text-muted)",
     letterSpacing: "0.04em",
   } satisfies CSSProperties,
+  meta: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 6,
+    paddingTop: 8,
+    borderTop: "1px solid var(--border)",
+    fontSize: 12,
+    fontFamily: "var(--font-mono, monospace)",
+    color: "var(--text-muted)",
+    whiteSpace: "nowrap",
+  } satisfies CSSProperties,
 } as const;
