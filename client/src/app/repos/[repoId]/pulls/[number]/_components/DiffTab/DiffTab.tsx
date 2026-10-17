@@ -27,6 +27,9 @@ import { s } from "./styles";
 interface DiffTabProps {
   prId: string | null;
   filesCount: number;
+  /** PR-level line totals (match the header, even when only some files are persisted). */
+  additions: number;
+  deletions: number;
   files: PrFile[];
   /** Inline commenting is offered only on open PRs (GitHub rejects otherwise). */
   canComment?: boolean;
@@ -34,7 +37,7 @@ interface DiffTabProps {
   headSha?: string | null;
 }
 
-export function DiffTab({ prId, filesCount, files, canComment, repoFullName, headSha }: DiffTabProps) {
+export function DiffTab({ prId, filesCount, additions, deletions, files, canComment, repoFullName, headSha }: DiffTabProps) {
   const t = useTranslations("prReview");
   const { data: reviews, isSuccess: reviewsLoaded } = usePrReviews(prId);
   const { data: smart } = useSmartDiff(prId);
@@ -103,26 +106,24 @@ export function DiffTab({ prId, filesCount, files, canComment, repoFullName, hea
 
   return (
     <section>
-      <SectionLabel
-        icon="Code"
-        right={
-          <div style={s.toolbar}>
-            <OrderToggle value={order} onChange={setOrder} />
-            {commentCount > 0 && (
-              <Button
-                kind="ghost"
-                size="sm"
-                icon={showComments ? "EyeOff" : "Eye"}
-                onClick={() => setShowComments(!showComments)}
-              >
-                {t(showComments ? "smartDiff.hideComments" : "smartDiff.showComments", { count: commentCount })}
-              </Button>
-            )}
-          </div>
-        }
-      >
-        {t("smartDiff.filesChanged", { count: filesCount })}
-      </SectionLabel>
+      <SectionLabel icon="Code">{t("smartDiff.reviewerOrdered")}</SectionLabel>
+      <div style={s.toolbar}>
+        <span className="tnum" style={s.stats}>
+          {t("smartDiff.filesCount", { count: filesCount })} · <span style={s.add}>+{additions}</span>{" "}
+          <span style={s.del}>−{deletions}</span>
+        </span>
+        {commentCount > 0 && (
+          <Button
+            kind="ghost"
+            size="sm"
+            icon={showComments ? "EyeOff" : "Eye"}
+            onClick={() => setShowComments(!showComments)}
+          >
+            {t(showComments ? "smartDiff.hideComments" : "smartDiff.showComments", { count: commentCount })}
+          </Button>
+        )}
+        <OrderToggle value={order} onChange={setOrder} />
+      </div>
       {reviewsLoaded && (reviews?.length ?? 0) === 0 && (
         <div style={s.noReview}>{t("smartDiff.noReviewYet")}</div>
       )}

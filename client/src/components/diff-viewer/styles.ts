@@ -40,7 +40,12 @@ export const s = {
     display: "flex",
     alignItems: "center",
     gap: 8,
+    width: "100%",
     padding: "8px 2px",
+    border: "none",
+    cursor: "pointer",
+    textAlign: "left",
+    font: "inherit",
     position: "sticky",
     // Sticks under the PR detail header when one publishes its height.
     top: "var(--pr-header-h, 0px)",

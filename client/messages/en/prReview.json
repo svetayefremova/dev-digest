@@ -70,10 +70,10 @@
     "filesCount": "{count, plural, one {# file} other {# files}}",
     "findingLines": "{count} finding-lines",
     "groupedByRole": "Smart Diff · grouped by role",
-    "filesChanged": "Files changed · {count, plural, one {# file} other {# files}}",
     "showComments": "Show comments ({count})",
     "hideComments": "Hide comments ({count})",
-    "noReviewYet": "No review yet — run a review to see findings next to the code."
+    "noReviewYet": "No review yet — run a review to see findings next to the code.",
+    "reviewerOrdered": "Reviewer-ordered diff"
   },
   "list": {
     "breadcrumb": "Pull Requests",
