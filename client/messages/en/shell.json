@@ -40,6 +40,16 @@
     "reply": "Reply",
     "viewOnGitHub": "View on GitHub",
     "postedToGitHub": "Posts to GitHub immediately",
-    "outdatedTitle": "{count} comment(s) on older revisions"
+    "outdatedTitle": "{count} comment(s) on older revisions",
+    "findingsNotInDiff": "{count, plural, one {# finding} other {# findings}} on lines outside this diff",
+    "fileHasFindings": "{count, plural, one {# finding} other {# findings}} in this file",
+    "severity": {
+      "CRITICAL": "blocker",
+      "WARNING": "warning",
+      "SUGGESTION": "suggestion",
+      "INFO": "info"
+    },
+    "expandAllFiles": "Expand all files",
+    "collapseAllFiles": "Collapse all files"
   }
 }

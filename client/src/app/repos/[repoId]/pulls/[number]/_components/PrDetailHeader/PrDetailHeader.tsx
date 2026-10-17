@@ -36,6 +36,21 @@ export function PrDetailHeader({
     onRunsStarted();
   }, [onRunsStarted]);
 
+  // Publish this sticky header's height so content below (Smart Diff group
+  // headers) can stick right under it instead of behind it.
+  const rootRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    const el = rootRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const root = document.documentElement;
+    const ro = new ResizeObserver(() => root.style.setProperty("--pr-header-h", `${el.offsetHeight}px`));
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      root.style.removeProperty("--pr-header-h");
+    };
+  }, []);
+
   const statusColor =
     pr.status === "merged"
       ? "var(--ok)"
@@ -44,7 +59,7 @@ export function PrDetailHeader({
         : "var(--warn)";
 
   return (
-    <div style={s.root}>
+    <div ref={rootRef} style={s.root}>
       <div style={s.titleRow}>
         <div style={s.titleCol}>
           <h1 style={s.h1}>
