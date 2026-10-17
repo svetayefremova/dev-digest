@@ -97,6 +97,18 @@ d('cross-workspace isolation (Testcontainers pg)', () => {
     await appA.close();
   });
 
+  it("workspace B cannot read workspace A's PR smart-diff, workspace A can (control)", async () => {
+    const appB = await appAs(workspaceBId);
+    const denied = await appB.inject({ method: 'GET', url: `/pulls/${prAId}/smart-diff` });
+    expect(denied.statusCode).toBe(404);
+    await appB.close();
+
+    const appA = await appAs(workspaceAId);
+    const allowed = await appA.inject({ method: 'GET', url: `/pulls/${prAId}/smart-diff` });
+    expect(allowed.statusCode).toBe(200);
+    await appA.close();
+  });
+
   it("workspace B cannot delete workspace A's repo", async () => {
     const appB = await appAs(workspaceBId);
     const res = await appB.inject({ method: 'DELETE', url: `/repos/${repoAId}` });

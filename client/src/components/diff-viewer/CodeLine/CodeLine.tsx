@@ -3,9 +3,13 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
+import { Icon, SEV } from "@devdigest/ui";
+import type { FindingRecord } from "@devdigest/shared";
 import { commentTargetFor, type CommentThread, type DiffCommentApi, cs } from "../comments";
 import { type Line } from "../helpers";
-import { s, lineRowFor, lineSignFor } from "../styles";
+import { s, lineRowFor, lineSignFor, findingStripeFor } from "../styles";
+import { topSeverity } from "../findings";
 import { CommentThreadView } from "../CommentThreadView";
 import { InlineComposer } from "../InlineComposer";
 
@@ -14,12 +18,17 @@ export function CodeLine({
   path,
   threads,
   commenting,
+  findings,
 }: {
   ln: Line;
   path: string;
   threads: CommentThread[];
   commenting?: DiffCommentApi;
+  /** Findings anchored to this line. The stripe + severity label always show;
+      the cards follow `show` (the same toggle as GitHub comments). */
+  findings?: { list: FindingRecord[]; render: (f: FindingRecord) => React.ReactNode; show: boolean };
 }) {
+  const t = useTranslations("shell");
   const [hover, setHover] = React.useState(false);
   const [composing, setComposing] = React.useState(false);
 
@@ -34,6 +43,8 @@ export function CodeLine({
   const sign = ln.kind === "add" ? "+" : ln.kind === "del" ? "−" : "";
   const target = commenting?.canComment ? commentTargetFor(ln) : null;
   const showAdd = hover && !!target && !composing;
+  const sev = findings && findings.list.length > 0 ? topSeverity(findings.list) : null;
+  const SevIcon = sev ? Icon[SEV[sev].icon] : null;
 
   return (
     <div
@@ -41,7 +52,7 @@ export function CodeLine({
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
-      <div style={lineRowFor(ln.kind)}>
+      <div style={sev ? { ...lineRowFor(ln.kind), ...findingStripeFor(SEV[sev].c) } : lineRowFor(ln.kind)}>
         <span className="mono tnum" style={{ ...s.lineNo, position: "relative" }}>
           {showAdd && target && (
             <button
@@ -62,12 +73,26 @@ export function CodeLine({
         <span className="mono" style={s.lineText}>
           {ln.text || " "}
         </span>
+        {sev && SevIcon && (
+          <span style={{ ...s.lineSeverity, color: SEV[sev].c }}>
+            <SevIcon size={12} />
+            {t(`diffViewer.severity.${sev}`)}
+          </span>
+        )}
       </div>
 
       {commenting &&
         commenting.showComments &&
         threads.map((th) => (
           <CommentThreadView key={th.rootId} thread={th} commenting={commenting} path={path} />
+        ))}
+
+      {findings &&
+        findings.show &&
+        findings.list.map((f) => (
+          <div key={f.id} style={cs.thread}>
+            {findings.render(f)}
+          </div>
         ))}
 
       {commenting && composing && target && (
