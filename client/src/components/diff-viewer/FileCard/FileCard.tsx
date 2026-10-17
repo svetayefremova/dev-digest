@@ -88,10 +88,14 @@ export function FileCard({
         {findingCount > 0 && (
           <span
             role="img"
+            className="tnum"
             aria-label={t("diffViewer.fileHasFindings", { count: findingCount })}
             title={t("diffViewer.fileHasFindings", { count: findingCount })}
-            style={s.findingDot}
-          />
+            style={s.findingsCounter}
+          >
+            <span aria-hidden style={s.findingDot} />
+            {findingCount}
+          </span>
         )}
         <span className="mono tnum" style={s.fileStat}>
           <span style={s.addText}>+{file.additions}</span>{" "}

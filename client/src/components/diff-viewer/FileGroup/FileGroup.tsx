@@ -48,7 +48,7 @@ export function FileGroup({ group, children }: { group: FileGroupHeader; childre
           <span style={s.groupHint}>{group.hint}</span>
         </button>
         {group.findingCount > 0 && (
-          <span className="tnum" style={s.groupFindings} title={group.findingsTitle} aria-label={group.findingsTitle}>
+          <span className="tnum" style={s.findingsCounter} title={group.findingsTitle} aria-label={group.findingsTitle}>
             <span aria-hidden style={s.findingDot} />
             {group.findingCount}
           </span>

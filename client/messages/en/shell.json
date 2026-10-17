@@ -42,7 +42,7 @@
     "postedToGitHub": "Posts to GitHub immediately",
     "outdatedTitle": "{count} comment(s) on older revisions",
     "findingsNotInDiff": "{count, plural, one {# finding} other {# findings}} on lines outside this diff",
-    "fileHasFindings": "{count} finding(s) in this file",
+    "fileHasFindings": "{count, plural, one {# finding} other {# findings}} in this file",
     "severity": {
       "CRITICAL": "blocker",
       "WARNING": "warning",

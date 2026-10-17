@@ -22,7 +22,8 @@ export const s = {
   filePath: {
     fontSize: 13,
     fontWeight: 500,
-    flex: 1,
+    // Shrinks but doesn't grow, so the findings counter sits right after the path.
+    flex: "0 1 auto",
     minWidth: 0,
     overflow: "hidden",
     textOverflow: "ellipsis",
@@ -60,7 +61,8 @@ export const s = {
     textAlign: "left",
     font: "inherit",
   } satisfies CSSProperties,
-  groupFindings: {
+  /** Red dot + finding count (group header and file header). */
+  findingsCounter: {
     display: "inline-flex",
     alignItems: "center",
     gap: 6,
@@ -91,7 +93,7 @@ export const s = {
     whiteSpace: "nowrap",
   } satisfies CSSProperties,
   groupMeta: { fontSize: 12.5, color: "var(--text-muted)" } satisfies CSSProperties,
-  fileStat: { fontSize: 12 } satisfies CSSProperties,
+  fileStat: { fontSize: 12, marginLeft: "auto" } satisfies CSSProperties,
   addText: { color: "var(--code-add-text)" } satisfies CSSProperties,
   delText: { color: "var(--code-del-text)" } satisfies CSSProperties,
   fileBody: {
