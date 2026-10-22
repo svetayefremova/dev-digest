@@ -86,10 +86,10 @@ Designs: `specs/onboarding/designs/onboarding-tour.png` (the full tour) and `spe
 - AC-29 — WHERE repo intelligence is disabled, the page shall show the skeleton with the reason "Repository index is turned off" and the tour API shall make no model call. — covers: US-3, US-6 — priority: must — verify: integration
 - AC-30 — IF the index status is `failed`, THEN the page shall show the skeleton with the failure reason and a "Re-analyze" action that requests a re-index. — covers: US-3 — priority: must — verify: unit
 - AC-31 — IF the index holds no supported source files, THEN the page shall show "No supported source files indexed (.ts, .tsx, .js, .jsx, .mjs, .cjs)" in place of the ranked sections and shall still show detected run commands. — covers: US-3 — priority: must — verify: integration
-- AC-32 — WHILE a generation is in progress, the page shall show the deterministic skeleton as placeholder content, disable Regenerate and show elapsed time, and shall replace the placeholders with the generated sections when the generation succeeds. — covers: US-4 — priority: should — verify: unit
+- AC-32 — WHILE a first generation is in progress (no persisted tour exists), the page shall show the deterministic skeleton as placeholder content, disable Regenerate and show elapsed time, with the placeholders replaced by the generated sections when the generation succeeds. — covers: US-4 — priority: should — verify: unit
 
 ### Regenerate, persistence and access
-- AC-33 — WHEN the user clicks Regenerate, the tour API shall start one new generation from the current index and the page shall keep showing the previous tour until the new one succeeds. — covers: US-4 — priority: must — verify: integration
+- AC-33 — WHEN the user clicks Regenerate, the page shall start one new generation from the current index and keep showing the previous tour, with Regenerate disabled and elapsed time shown, until the new one succeeds. — covers: US-4 — priority: must — verify: integration
 - AC-34 — WHILE a generation for a repo is running, the tour API shall not start a second one from another request or tab and shall return the running generation instead. — covers: US-4, US-6 — priority: must — verify: integration
 - AC-35 — IF a regeneration fails, THEN the page shall keep the previous successful tour and show the failure reason in a banner. — covers: US-3, US-4 — priority: must — verify: integration
 - AC-36 — The tour API shall return the persisted tour of a repo only to members of the repo's workspace and shall respond 404 for a repo id of another workspace. — covers: US-5 — priority: must — verify: integration
@@ -222,8 +222,8 @@ INSIGHTS applied: client/INSIGHTS.md — client must use `import type` only from
 | AC-29 | US-3, US-6 | topic 3 `repoIntelEnabled` | integration | Flag off → skeleton "Repository index is turned off", zero model calls |
 | AC-30 | US-3 | `types.ts:25` failed status | unit | Status failed → skeleton with reason and Re-analyze button |
 | AC-31 | US-3 | `constants.ts:14` supported ext | integration | Python-only repo → "No supported source files indexed" and detected commands |
-| AC-32 | US-4 | accepted UX proposal 1 | unit | During generation → skeleton content, Regenerate disabled, elapsed shown; on success sections replaced |
-| AC-33 | US-4 | design Regenerate | integration | Regenerate → new run; old tour served until success |
+| AC-32 | US-4 | accepted UX proposal 1 | unit | First generation (no persisted tour) → skeleton content, Regenerate disabled, elapsed shown; on success sections replaced |
+| AC-33 | US-4 | design Regenerate | integration | Persisted tour, click Regenerate → new run started; previous tour still shown with Regenerate disabled and elapsed time until success |
 | AC-34 | US-4, US-6 | corner case | integration | Two POSTs within 1 s → second returns the running generation, one model call |
 | AC-35 | US-3, US-4 | corner case | integration | Regenerate with failing provider → previous tour still served, failure reason shown |
 | AC-36 | US-5 | threat checklist IDOR | integration | GET with another workspace's repo id → 404 |
