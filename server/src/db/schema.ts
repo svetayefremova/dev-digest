@@ -20,6 +20,7 @@ export * from './schema/skills';
 export * from './schema/agents';
 export * from './schema/knowledge';
 export * from './schema/context';
+export * from './schema/context-docs';
 export * from './schema/eval';
 export * from './schema/ci';
 export * from './schema/runs';
@@ -33,6 +34,7 @@ import { reviews, findings, prIntent, prBrief } from './schema/reviews';
 import { skills, skillVersions } from './schema/skills';
 import { agents, agentVersions, agentSkills } from './schema/agents';
 import { memory, conventions, conventionScans } from './schema/knowledge';
+import { agentContextDocs, skillContextDocs } from './schema/context-docs';
 import { codeChunks, symbols, references, onboarding } from './schema/context';
 import { evalCases, evalRuns, conformanceChecks, composedReviews } from './schema/eval';
 import { ciInstallations, ciRuns } from './schema/ci';
@@ -65,6 +67,8 @@ export const schema = {
   agents,
   agentVersions,
   agentSkills,
+  agentContextDocs,
+  skillContextDocs,
   conventions,
   conventionScans,
   memory,

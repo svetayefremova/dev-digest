@@ -7,10 +7,11 @@ export interface EditorTab {
   icon: IconName;
 }
 
-/** Editor tabs, in display order. Evals and Context are later lessons. */
+/** Editor tabs, in display order. Evals is a later lesson. */
 export const TABS: readonly EditorTab[] = [
   { key: "config", labelKey: "editor.tabs.config", icon: "Settings" },
   { key: "preview", labelKey: "editor.tabs.preview", icon: "Eye" },
+  { key: "context", labelKey: "editor.tabs.context", icon: "FileText" },
   { key: "stats", labelKey: "editor.tabs.stats", icon: "BarChart" },
   { key: "versions", labelKey: "editor.tabs.versions", icon: "History" },
 ];

@@ -222,6 +222,32 @@ export class ReviewRunExecutor {
           : 'Skills: none enabled for this agent',
       );
 
+      // Project context — documents attached to the agent / its enabled skills,
+      // read from the repo row's checkout. Problems are warnings, never failures.
+      const ctx = await runLog.step(
+        'Loading project context',
+        () => this.container.contextDocs.resolveForRun(repo.clonePath ?? null, agent.id),
+        { kind: 'tool' },
+      );
+      runLog.info(
+        ctx.read.length > 0
+          ? `Project context: ${ctx.read.length} document(s), +${ctx.tokens} tokens`
+          : 'Project context: none injected',
+      );
+      for (const w of ctx.warnings) runLog.info(`warning: ${w}`);
+      if (ctx.read.length + ctx.skipped.length > 0) {
+        logger?.info(
+          {
+            event: 'context.injected',
+            run_id: runId,
+            docs_read: ctx.read.length,
+            tokens_injected: ctx.tokens,
+            skipped_paths: ctx.skipped,
+          },
+          'project context injected',
+        );
+      }
+
       // ---- Engine: assemble → single-pass → grounding -----------------------
       // The pure review pipeline lives in @devdigest/reviewer-core (shared with
       // the CI runner). The service owns only I/O: repo-intel context resolution
@@ -235,6 +261,7 @@ export class ReviewRunExecutor {
         // to the studio default. single-pass = whole diff in one call.
         strategy: agent.strategy ?? REVIEW_STRATEGY,
         ...(skillBlocks.length > 0 ? { skills: skillBlocks } : {}),
+        ...(ctx.specs.length > 0 ? { specs: ctx.specs } : {}),
         // T1.3 — pass the callers digest only when we built one. assemblePrompt
         // omits the section when this is empty/undefined.
         ...(callersDigest ? { callers: callersDigest } : {}),
@@ -298,7 +325,7 @@ export class ReviewRunExecutor {
           findings: keptFindings.length,
           grounding,
         },
-        prompt_assembly: { ...outcome.assembly, skills_tokens: skillsTokens },
+        prompt_assembly: { ...outcome.assembly, skills_tokens: skillsTokens, specs_tokens: ctx.tokens },
         tool_calls: outcome.chunks.map((c) => ({
           tool: 'review_file',
           args: c.label,
@@ -307,7 +334,9 @@ export class ReviewRunExecutor {
         })),
         raw_output: outcome.raw,
         memory_pulled: [],
-        specs_read: [],
+        specs_read: ctx.read,
+        specs_read_detail: ctx.readDocs.length > 0 ? ctx.readDocs : null,
+        context_warnings: ctx.warnings.length > 0 ? ctx.warnings : null,
         // Persisted log = the run's FULL event buffer (incl. shared pre-work:
         // diff load + intent), not just events recorded inside this method.
         log: runLog.logFor(runId),
@@ -500,6 +529,7 @@ export class ReviewRunExecutor {
       raw_output: '',
       memory_pulled: [],
       specs_read: [],
+      context_warnings: null,
       log: this.container.runBus.buffer(runId).map((e) => ({ t: e.t, kind: e.kind, msg: e.msg })),
     };
   }

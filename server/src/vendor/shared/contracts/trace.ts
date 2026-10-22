@@ -43,6 +43,8 @@ export const PromptAssembly = z.object({
   skills_tokens: z.number().int().nullish(),
   memory: z.string().nullish(),
   specs: z.string().nullish(),
+  /** Tokens the project-context block added to the prompt; null when none injected. */
+  specs_tokens: z.number().int().nullish(),
   /** Callers-of-changed-symbols digest (T1.3); null when absent. */
   callers: z.string().nullish(),
   /** Repo skeleton / map (T3); null when absent. Enables per-slot token
@@ -88,6 +90,10 @@ export const RunTrace = z.object({
   raw_output: z.string(),
   memory_pulled: z.array(MemoryPulled),
   specs_read: z.array(z.string()),
+  /** Per injected project-context document: path + tokens; null/absent on old traces. */
+  specs_read_detail: z.array(z.object({ path: z.string(), tokens: z.number().int() })).nullish(),
+  /** Non-fatal project-context problems (missing docs, truncation); null on old traces. */
+  context_warnings: z.array(z.string()).nullish(),
   log: z.array(RunLogLine),
 });
 export type RunTrace = z.infer<typeof RunTrace>;

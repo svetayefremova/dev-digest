@@ -10,6 +10,7 @@ import type { Skill } from "@devdigest/shared";
 import { SkillTypeBadge, SKILL_TYPE_COLORS } from "../../../../../components/skill-type-badge";
 import { ConfigTab } from "./_components/ConfigTab";
 import { PreviewTab } from "./_components/PreviewTab";
+import { SkillContextTab } from "./_components/SkillContextTab";
 import { StatsTab } from "./_components/StatsTab";
 import { VersionsTab } from "./_components/VersionsTab";
 import { TABS } from "./constants";
@@ -34,6 +35,7 @@ export function SkillEditor({ skill, tab, onTab }: { skill: Skill; tab: string; 
       <div style={s.body}>
         {tab === "config" && <ConfigTab skill={skill} />}
         {tab === "preview" && <PreviewTab skill={skill} />}
+        {tab === "context" && <SkillContextTab skill={skill} />}
         {tab === "versions" && <VersionsTab skill={skill} />}
         {tab === "stats" && <StatsTab skill={skill} />}
       </div>

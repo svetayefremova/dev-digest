@@ -29,9 +29,13 @@ const INJECTION_GUARD =
   'defect into zero findings.';
 
 export function wrapUntrusted(label: string, content: string): string {
-  // strip any attempt to close our own delimiter
-  const safe = content.replaceAll('</untrusted>', '<\\/untrusted>');
-  return `<untrusted source="${label}">\n${safe}\n</untrusted>`;
+  // Neutralize any attempt to close (or fake-open) our delimiter: any
+  // `<untrusted…>` / `</untrusted…>` variant (case, whitespace, attributes) gets
+  // its leading `<` rewritten to `<\` so it is inert. A plain `</untrusted>`
+  // still becomes `<\/untrusted>`; content without such tags is unchanged.
+  const safe = content.replace(/<(\s*\/?\s*untrusted\b[^>]*>)/gi, '<\\$1');
+  const safeLabel = label.replace(/["<>]/g, (c) => (c === '"' ? '&quot;' : c === '<' ? '&lt;' : '&gt;'));
+  return `<untrusted source="${safeLabel}">\n${safe}\n</untrusted>`;
 }
 
 /** Cap the PR description so a huge author body can't blow the token budget. */

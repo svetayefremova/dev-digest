@@ -259,6 +259,51 @@ export const IndexStatus = z.object({
 });
 export type IndexStatus = z.infer<typeof IndexStatus>;
 
+export const DocCategory = z.enum(['specs', 'docs', 'insights', 'other']);
+export type DocCategory = z.infer<typeof DocCategory>;
+
+/** One `.md` file in a repo checkout. `tokens` is null when not previewable. */
+export const ContextDoc = z.object({
+  path: z.string(),
+  category: DocCategory,
+  tokens: z.number().int().nullable(),
+  size: z.number().int(),
+  updated_at: z.string(),
+  previewable: z.boolean(),
+  used_by_agents: z.number().int(),
+});
+export type ContextDoc = z.infer<typeof ContextDoc>;
+
+export const ContextDocList = z.object({
+  cloned: z.boolean(),
+  docs: z.array(ContextDoc),
+  truncated: z.boolean(),
+  total_tokens: z.number().int(),
+  scanned_at: z.string(),
+  /** Folder names the reader searches (for the empty-state hint); absent on old servers. */
+  search_roots: z.array(z.string()).optional(),
+});
+export type ContextDocList = z.infer<typeof ContextDocList>;
+
+export const ContextDocContent = z.object({
+  path: z.string(),
+  content: z.string().nullable(),
+  reason: z.enum(['too_large', 'unreadable']).nullable(),
+});
+export type ContextDocContent = z.infer<typeof ContextDocContent>;
+
+export const ContextAttachment = z.object({
+  path: z.string(),
+  order: z.number().int(),
+});
+export type ContextAttachment = z.infer<typeof ContextAttachment>;
+
+/** Replace-the-whole-ordered-list body for PUT /agents|skills/:id/context. */
+export const SetContextAttachmentsBody = z.object({
+  paths: z.array(z.string().min(1).max(1024)).max(500),
+});
+export type SetContextAttachmentsBody = z.infer<typeof SetContextAttachmentsBody>;
+
 // ---- Run request (review trigger; owned by A2, contract lives here) ----
 export const RunRequest = z.object({
   agentId: z.string().optional(),

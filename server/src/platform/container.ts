@@ -28,6 +28,8 @@ import { AgentsRepository } from '../modules/agents/repository.js';
 import { ReviewRepository } from '../modules/reviews/repository.js';
 import { RepoRepository } from '../modules/repos/repository.js';
 import { SkillsRepository } from '../modules/skills/repository.js';
+import { ContextRepository } from '../modules/context/repository.js';
+import { ContextService } from '../modules/context/service.js';
 import type { RepoIntel } from '../modules/repo-intel/types.js';
 import { RepoIntelService } from '../modules/repo-intel/service.js';
 import { type DepGraph, DepCruiseGraph } from '../adapters/depgraph/index.js';
@@ -78,6 +80,8 @@ export class Container {
   private _reviewRepo?: ReviewRepository;
   private _reposRepo?: RepoRepository;
   private _skillsRepo?: SkillsRepository;
+  private _contextRepo?: ContextRepository;
+  private _contextDocs?: ContextService;
   private _repoIntel?: RepoIntel;
   private _depgraph?: DepGraph;
   private _tokenizer?: Tokenizer;
@@ -117,6 +121,15 @@ export class Container {
 
   get skillsRepo(): SkillsRepository {
     return (this._skillsRepo ??= new SkillsRepository(this.db));
+  }
+
+  get contextRepo(): ContextRepository {
+    return (this._contextRepo ??= new ContextRepository(this.db));
+  }
+
+  /** Project-context documents (browse, attach, resolve for a run); owns the token cache. */
+  get contextDocs(): ContextService {
+    return (this._contextDocs ??= new ContextService(this));
   }
 
   get codeIndex(): CodeIndex {

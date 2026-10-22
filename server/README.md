@@ -101,6 +101,7 @@ flowchart TB
 | `DEVDIGEST_CLONE_DIR` | `./clones` | imported-repo checkouts (git-ignored) |
 | `LOG_LEVEL` | `info` (`silent` in test) | pino level |
 | `PROMPT_LOG_VERBOSE` | `false` | `true` adds per-section sha256 prefixes, item sizes and exact tiktoken counts to the `prompt.assembled` log; honored **only** with `NODE_ENV=development` (ignored with a boot warning elsewhere). Never logs prompt content |
+| `CONTEXT_SEARCH_GLOBS` | `**/{specs,docs,insights}/**/*.md` | Project Context: comma-separated repo-relative globs of Markdown files the document reader lists (commas inside `{}` are kept). Empty or invalid (absolute, `..`, unbalanced braces) → default. `node_modules`, `vendor` and `.git` are always skipped. See [`add-project-context`](../docs/features/add-project-context.md) |
 | `NODE_ENV` | `development` | `test` → silent logs + global rate-limit disabled |
 
 Every review prompt emits one stdout-only `prompt.assembled` log line per LLM
