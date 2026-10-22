@@ -25,3 +25,6 @@ test-results/
 
 # emdash worktree config (local)
 .emdash.json
+
+# file(1) compiled magic database (stray output of `file -C`)
+*.mgc
