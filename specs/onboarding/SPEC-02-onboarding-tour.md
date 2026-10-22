@@ -16,7 +16,7 @@ Current state:
 - `repoIntel` offers `getIndexState`, `getRepoMap`, `getTopFilesByRank` and `getCriticalPaths` ("onboarding reading-path", dependency chains from top-ranked files, `server/src/modules/repo-intel/service.ts:659-702`). `getIndexState` returns `status: degraded` / `reason: no_data` when nothing is indexed (`service.ts:189-205`). Degraded reasons are `flag_off | index_failed | index_partial | repo_too_large | no_data` (`server/src/modules/repo-intel/types.ts:27-32`).
 - The index parses only `.ts .tsx .js .jsx .mjs .cjs` and stops at `MAX_INDEXED_FILES = 5000` (`server/src/modules/repo-intel/constants.ts:14,42`). Clones are shallow, so `hotness` is always 0 and rank equals PageRank (`server/src/modules/repo-intel/pipeline/rank.ts:5`, `full.ts:227`).
 
-Designs: `specs/onboarding/designs/onboarding-tour.png` (the full tour) and `specs/onboarding/designs/onboarding-tour-empty.png` (the empty state for a repo with no tour). Both were provided as chat images; the files were not on disk when this spec was written, so the descriptions given in the request are treated as authoritative.
+Designs: `specs/onboarding/designs/onboarding-tour.png` (the full tour) and `specs/onboarding/designs/onboarding-tour-empty.png` (the empty state for a repo with no tour). Both files are committed on disk and are the design source for this spec.
 
 ## Goals / Non-goals
 - Goals:
@@ -167,7 +167,7 @@ Designs: `specs/onboarding/designs/onboarding-tour.png` (the full tour) and `spe
 | Model output | LLM provider | untrusted | contract `knowledge.ts:44-47` |
 | Repo/workspace ids in URL | user | untrusted | IDOR, AC-36 |
 
-Spec sources: request (Onboarding Tour tab, five sections, deterministic facts + one LLM call + honest skeleton), designs: `specs/onboarding/designs/onboarding-tour.png` (missing; request description used), code anchors: `client/src/components/app-shell/helpers.ts:29`, `client/messages/en/shell.json:19`, `server/src/modules/repo-intel/constants.ts:42`, `server/src/modules/repo-intel/service.ts:189,659`, `server/src/modules/repo-intel/types.ts:25-32`, `server/src/modules/repo-intel/pipeline/rank.ts:5`, `server/src/db/schema/context.ts:120`, `server/src/vendor/shared/contracts/knowledge.ts:28-47`, `server/src/prompts/onboarding.system.md`, research: none, mcp: none (devdigest MCP not needed; feature does not read review data)
+Spec sources: request (Onboarding Tour tab, five sections, deterministic facts + one LLM call + honest skeleton), designs: `specs/onboarding/designs/onboarding-tour.png` and `specs/onboarding/designs/onboarding-tour-empty.png`, code anchors: `client/src/components/app-shell/helpers.ts:29`, `client/messages/en/shell.json:19`, `server/src/modules/repo-intel/constants.ts:42`, `server/src/modules/repo-intel/service.ts:189,659`, `server/src/modules/repo-intel/types.ts:25-32`, `server/src/modules/repo-intel/pipeline/rank.ts:5`, `server/src/db/schema/context.ts:120`, `server/src/vendor/shared/contracts/knowledge.ts:28-47`, `server/src/prompts/onboarding.system.md`, research: none, mcp: none (devdigest MCP not needed; feature does not read review data)
 INSIGHTS applied: client/INSIGHTS.md — client must use `import type` only from `@devdigest/shared` (value imports break the Next bundler), constrains the plan, not behaviour; server/INSIGHTS.md — contracts are duplicated in client and server and drift silently (new contract fields must land in both) → noted in Assumptions; `container.git.readFile` can fail for a checkout that is not this machine's clone → clone-missing behaviour AC-27 (read: client/INSIGHTS.md, server/INSIGHTS.md)
 
 ## Untrusted inputs
@@ -257,7 +257,7 @@ Coverage:
 - NFRs: Performance → success signal; Accessibility → AC-10, AC-43, AC-45, AC-50; Security → AC-20, AC-21, AC-24, AC-36, AC-42, AC-44; i18n → AC-6; Observability → AC-44; LLM cost → AC-19, AC-21, AC-34, AC-39, AC-40, AC-56
 
 ## Design analysis
-- Designs reviewed: `specs/onboarding/designs/onboarding-tour.png` and `specs/onboarding/designs/onboarding-tour-empty.png` (not on disk; request descriptions), `client/src/components/app-shell/helpers.ts`, `client/src/app/onboarding/page.tsx`, `client/src/app/repos/[repoId]/`
+- Designs reviewed: `specs/onboarding/designs/onboarding-tour.png` and `specs/onboarding/designs/onboarding-tour-empty.png`, `client/src/components/app-shell/helpers.ts`, `client/src/app/onboarding/page.tsx`, `client/src/app/repos/[repoId]/`
 - Gaps found:
   - No empty/loading/error/stale states in the design → AC-26 to AC-32, AC-35, AC-37
   - Sample "12,450 files" exceeds the 5,000 cap → AC-6, AC-7 (Q3)
@@ -289,4 +289,4 @@ Q6 is resolved. The decided values Q5 and Q7–Q13 are written into the ACs belo
 - Q11 [C5] — default used: 60 s cooldown between generations per repo → AC-40 — assumed default — confirm
 - Q12 [C4] — default used: copy button omits trailing `# comment`; long paths truncate with full path on hover → AC-43 — assumed default — confirm
 - Q13 [C2] — default used: any member of the repo's workspace may generate or regenerate (no roles exist in the code read) → AC-36 — assumed default — confirm
-- Q14 → resolved: the two design PNGs are referenced (`onboarding-tour.png`, `onboarding-tour-empty.png`); the user adds the files, nothing blocks. Route path and persistence shape are plan decisions.
+- Q14 → resolved: the two design PNGs (`specs/onboarding/designs/onboarding-tour.png`, `specs/onboarding/designs/onboarding-tour-empty.png`) are on disk and are the design source. Route path and persistence shape are plan decisions.
