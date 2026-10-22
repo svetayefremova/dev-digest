@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PreToolUse(Write) guard for the `spec-creator` subagent
+# PreToolUse(Write|Edit) guard for the `spec-creator` subagent
 # (wired in .claude/agents/spec-creator.md frontmatter).
 #
 # The spec-creator may only write feature specifications:
@@ -10,6 +10,8 @@
 #   - Spec IDs are global: no other specs/*/SPEC-NN-*.md may carry the same number
 #   - an existing file may be overwritten only while it is still `Status: draft`
 #     (approved/implemented specs are frozen — plans and code are built on them)
+#   - Edit: only on an existing `Status: draft` spec, and never on the `Spec ID:` or
+#     `Status:` lines (the ID is fixed; humans promote the status)
 #
 # Fails CLOSED: anything that can't be positively verified is denied (exit 2).
 # Symlinks are not resolved (same limitation as implementation-planner-write-guard.sh).
@@ -24,10 +26,13 @@ deny() {
 command -v jq >/dev/null 2>&1 || deny "jq not found; cannot verify the target path"
 
 INPUT_JSON="$(cat)"
+TOOL_NAME="$(printf '%s' "$INPUT_JSON" | jq -r '.tool_name // ""' 2>/dev/null)"
+case "$TOOL_NAME" in
+  Write|Edit) ;;
+  *) deny "unsupported tool: ${TOOL_NAME:-<none>}" ;;
+esac
 FILE_PATH="$(printf '%s' "$INPUT_JSON" | jq -r '.tool_input.file_path // ""' 2>/dev/null)"
 [ -n "$FILE_PATH" ] || deny "no file_path in tool input"
-CONTENT="$(printf '%s' "$INPUT_JSON" | jq -r '.tool_input.content // ""' 2>/dev/null)"
-[ -n "$CONTENT" ] || deny "no content in tool input"
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(printf '%s' "$INPUT_JSON" | jq -r '.cwd // ""')}"
 [ -n "$PROJECT_DIR" ] || deny "cannot resolve project dir"
@@ -56,6 +61,22 @@ MODULE="$(basename "$DIR")"
   || deny "spec file must be named SPEC-NN-<kebab-slug>.md (got: $BASE)"
 FILE_ID="SPEC-${BASH_REMATCH[1]}"
 FILE_NUM=$((10#${BASH_REMATCH[1]}))
+
+if [ "$TOOL_NAME" = "Edit" ]; then
+  [ -f "$ABS" ] || deny "Edit needs an existing spec; create it with Write first ($BASE)"
+  grep -qE '^Status:[[:space:]]*draft[[:space:]]*$' "$ABS" \
+    || deny "$BASE is no longer 'Status: draft' — write a new spec with 'Supersedes:' instead"
+  printf '%s' "$INPUT_JSON" | jq -e '.tool_input | has("new_string")' >/dev/null 2>&1 \
+    || deny "no new_string in tool input"
+  OLD="$(printf '%s' "$INPUT_JSON" | jq -r '.tool_input.old_string // ""')"
+  NEW="$(printf '%s' "$INPUT_JSON" | jq -r '.tool_input.new_string // ""')"
+  printf '%s\n%s\n' "$OLD" "$NEW" | grep -qE '^(Spec ID|Status):' \
+    && deny "Edit may not touch the 'Spec ID:' or 'Status:' lines"
+  exit 0
+fi
+
+CONTENT="$(printf '%s' "$INPUT_JSON" | jq -r '.tool_input.content // ""' 2>/dev/null)"
+[ -n "$CONTENT" ] || deny "no content in tool input"
 
 # Content must match the file name and stay a draft.
 printf '%s\n' "$CONTENT" | grep -qE "^Spec ID:[[:space:]]*${FILE_ID}[[:space:]]*$" \

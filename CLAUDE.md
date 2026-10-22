@@ -22,7 +22,7 @@ Feature specs (Spec Driven Development) live in top-level `specs/<module>/SPEC-N
 ## Read when
 
 - `README.md` — when you need the full repo architecture, the review-flow mermaid diagram, or the course lesson map (L01–L08).
-- `.claude/skills/run-plan/SKILL.md` — when running `/run-plan <plan>` (approved plan → implement → architecture/verify fix loops → docs → self-review; spec-creator and implementation-planner are run manually before it).
+- `.claude/skills/run-plan/SKILL.md` — when running `/run-plan <plan>` (approved plan → implement → architecture/verify+security fix loops → docs → user runs /pr-self-review; spec-creator and implementation-planner are run manually before it).
 - `specs/README.md` — when writing, approving or implementing a feature spec (layout, global `SPEC-NN` IDs, lifecycle, EARS).
 - `TESTING.md` — when touching tests in any package (cross-package testing strategy).
 - `client/CLAUDE.md`, `server/CLAUDE.md`, `reviewer-core/CLAUDE.md`, `e2e/CLAUDE.md`, `mcp/CLAUDE.md` — when working inside that package. These load automatically by location; this line is a fallback in case auto-load doesn't trigger.

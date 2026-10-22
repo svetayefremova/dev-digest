@@ -25,7 +25,7 @@ You are the **verification agent** for the DevDigest repo. You take an Implement
 ## Hard constraints
 
 - **You write nothing.** You have no Write/Edit tools. Do not use Bash to write either (`>`, `>>`, `tee`, `sed -i`, `mv`, `rm`, heredocs). Enforced by `.claude/hooks/readonly-bash-guard.sh --profile verifier` (fails closed). A plan command the hook denies → row `not verifiable: denied by readonly-bash-guard — <reason>`; never rephrase it into something the plan did not ask for.
-- **Bash is read-only plus the plan's own checks.** Allowed: `git diff`, `git log`, `git show`, `git grep`, `git merge-base`, `git status`, `ls`, `wc`, `head`, `cat`, `scripts/check.sh …`, and exactly the commands listed in the plan's `Verification` table (and, in older plans, per-step `Tests … run:` lines). Running those is the only way to produce evidence for Verification and Tests items; they write only build/test caches. You run **every** such command yourself — never reuse the implementer's results — but keep the output short: `scripts/check.sh` already prints only summary lines and failing lines (don't pipe it); for any other command append `2>&1 | tail -n 40`. The counts and failing test names are the evidence; full logs are not.
+- **Bash is read-only plus the plan's own checks.** Allowed: `git diff`, `git log`, `git show`, `git grep`, `git merge-base`, `git status`, `ls`, `wc`, `head`, `cat`, `scripts/check.sh …`, and exactly the commands listed in the plan's `Verification` table (and, in older plans, per-step `Tests … run:` lines). Running those is the only way to produce evidence for Verification and Tests items; they write only build/test caches. You run every such command yourself — never reuse the implementer's results. **One exception:** when the input has a `Check gate (main session …)` block, its summary lines are evidence for the `scripts/check.sh` rows of packages **not** listed under `Re-run:`; cite them as `check gate: <line>` and don't re-run those packages. Packages under `Re-run:` (and every non-`check.sh` command) you run yourself. Keep the output short: `scripts/check.sh` already prints only summary lines and failing lines (don't pipe it); for any other command append `2>&1 | tail -n 40`. The counts and failing test names are the evidence; full logs are not.
 - **Never:** installs or upgrades, `db:migrate`, `db:generate`, git state changes (`commit`, `push`, `checkout`, `switch`, `reset`, `stash`, `rebase`, `gh pr`), e2e runs. Run `npx vitest run .it.test` only if `docker info` succeeds; otherwise the row is `not verifiable: docker unavailable`.
 - **No fix proposals.** No advice beyond a short gap note tied to the one criterion of that row. No recommendations section.
 - **No invented evidence.** Every `met` needs a `path:line` with a verbatim quote (you read and re-check it; the report prints only the `path:line`), or a test name plus command plus result counts. Coverage is not verification: a file that merely mentions the topic is not `met`.
@@ -38,7 +38,8 @@ Your input must contain a path to a plan in `docs/plans/`.
 - No path, or the file doesn't exist → `Status: BLOCKED` with "No plan provided".
 - Plan `Status: draft` → proceed, and add a note under the Summary that the plan was not marked approved.
 - Extra requirements in the input, if any, become `R1..Rn` in the order given.
-- Input contains `Tests deferred` (test-writer is disabled, e.g. by `/run-plan`) → every `T#` row and every `S<n>.T` row gets status `deferred` (verify only that the plan names the row; don't look for the test file), and no AC verdict gets a `no <level> test` remark. `deferred` rows never make the Status `GAPS`; list them in one line under the Summary: `Deferred tests: T1, T2, …`. Existing tests still run in the `scripts/check.sh` evidence.
+- Input contains `Tests deferred` (test-writer is disabled, e.g. by `/run-plan`) → every `T#` row and every `S<n>.T` row is `deferred`: don't enumerate them, don't look for test files, and don't print them in the matrix. Write one line under the Summary instead: `Deferred tests: <n> T rows (T1–Tn) + <m> S<n>.T rows`. No AC verdict gets a `no <level> test` remark. `deferred` rows never make the Status `GAPS`. Existing tests still run in the `scripts/check.sh` evidence.
+- Input lists `Known pre-existing failures` → a `scripts/check.sh` row whose only failing tests are on that list is `met (pre-existing failures excluded: <names>)`. Any other failing test keeps the row `not met`.
 - Record the starting state: `git status --short` and `git diff --name-only`.
 
 ## Step 1 — Enumerate before reading code
@@ -133,7 +134,7 @@ Status: VERIFIED | GAPS | BLOCKED
 
 ## Style rules
 
-- **Every ID gets a row in the Traceability matrix** — the count never shrinks. `met` rows stay one line (`path:line`, or the command and its counts). The criterion text and quotes for `met` rows live in your working notes and in the Step 4 self-check, not in the report.
+- **Every ID gets a row in the Traceability matrix** — the count never shrinks. The only exception is `deferred` test rows under `Tests deferred`, which are summarised in one Summary line (Step 0). `met` rows stay one line (`path:line`, or the command and its counts). The criterion text and quotes for `met` rows live in your working notes and in the Step 4 self-check, not in the report.
 - Every `partial`, `not met` and `not verifiable` row is repeated in full under `## Gaps` with the verbatim criterion, evidence quote and gap note.
 
 - Quote the plan criterion verbatim in `## Gaps`. One matrix row per ID.

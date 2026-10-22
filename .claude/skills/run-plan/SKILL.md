@@ -1,7 +1,7 @@
 ---
 name: run-plan
-description: Runs an approved Implementation Plan through the rest of the Spec Driven Development flow — implementer → check gate → architecture-review fix loop → plan-verifier fix loop → doc-writer → /pr-self-review — with a findings ledger, at most 2 fix rounds per loop and resume via --from. Takes the plan path (the spec comes from its header), optional designs and an optional extra-requirements prompt. spec-creator and implementation-planner are run manually before this; test-writer is currently disabled (tests deferred). Never commits or opens a PR.
-argument-hint: docs/plans/<name>.md [--design <path|artifact-url>]... [--from implement|arch|verify|docs|self-review] [--review-bugs] [--no-docs] ["extra requirements"]
+description: Runs an approved Implementation Plan through the rest of the Spec Driven Development flow — implementer → check gate → architecture-review fix loop → plan-verifier + security fix loop → doc-writer → hands /pr-self-review to the user — with a findings ledger, at most 2 fix rounds per loop and resume via --from. Takes the plan path (the spec comes from its header), optional designs and an optional extra-requirements prompt. spec-creator and implementation-planner are run manually before this; test-writer is currently disabled (tests deferred). Never commits or opens a PR.
+argument-hint: docs/plans/<name>.md [--design <path|artifact-url>]... [--from implement|arch|verify|docs|self-review] [--review-bugs] [--no-security] [--no-docs] ["extra requirements"]
 disable-model-invocation: true
 ---
 
@@ -15,9 +15,9 @@ Out of scope here: `spec-creator` and `implementation-planner` (the user runs th
 flowchart TD
   P0[P0 Intake] --> P1[P1 Implement + check gate]
   P1 --> P2[P2 Architecture loop, max 2 rounds]
-  P2 --> P3[P3 Verify loop, max 2 rounds]
+  P2 --> P3[P3 Verify + security loop, max 2 rounds]
   P3 --> P4[P4 Docs]
-  P4 --> P5[P5 /pr-self-review + summary]
+  P4 --> P5[P5 Summary + hand /pr-self-review to the user]
   P2 -. oscillation / round limit .-> U{{Ask user}}
   P3 -. oscillation / round limit .-> U
 ```
@@ -28,6 +28,7 @@ flowchart TD
 - `--design <x>` (repeatable) → **designs**. Local image/HTML paths pass through. A claude.ai artifact URL: read it with the Artifact tool (`action: read`) and save the result in the scratchpad; pass that local path.
 - `--from <phase>` → resume at `implement | arch | verify | docs | self-review` using the ledger.
 - `--review-bugs` → also run `/code-review` in P3 (off by default to save tokens).
+- `--no-security` → skip the P3 security pass even when the diff qualifies.
 - `--no-docs` → skip P4.
 - Remaining quoted text → **extra requirements**.
 
@@ -53,7 +54,7 @@ Phase: <P1 | P2 r1 | P2 r2 | P3 r1 | ... | done> · Deferred tests: <T ids | non
 - F5 — <one line>
 ```
 
-**Fingerprint** = `<source>:<rule id | plan row id | check name>:<file>` — no line numbers (they move between rounds). Sources: `gate`, `arch`, `verifier`, `code-review`, `self-review`.
+**Fingerprint** = `<source>:<rule id | plan row id | check name>:<file>` — no line numbers (they move between rounds). Sources: `gate`, `arch`, `verifier`, `security`, `code-review`, `self-review`.
 **States**: `open → fixed | waived | needs-human | backlog`.
 
 ## P0 — Intake
@@ -77,6 +78,7 @@ Phase: <P1 | P2 r1 | P2 r2 | P3 r1 | ... | done> · Deferred tests: <T ids | non
 2. A workstream `BLOCKED` / `PARTIAL` → show its blockers, AskUserQuestion: retry with an answer / stop.
 3. **Check gate**: for each touched package, `scripts/check.sh <pkg>`; add `scripts/check.sh server --it --no-typecheck` when the implementer report has a `Dev DB` line or touched `server/src/db/`. Failing lines → ledger as `gate` findings → `implementer fix: <plan>` with them → re-run only the failing packages. Max 2 attempts, then ask the user.
 4. Keep from the reports: `Deviations`, `Failing existing tests`, `Dev DB`. A `Dev DB` line → tell the user to apply the migration (server `INSIGHTS.md` procedure) before opening the UI.
+5. Record the last passing (or accepted) summary line of every check-gate command in the ledger under `Check gate:` (e.g. `client: typecheck ok · unit ok — 119 passed`), plus `Touched since gate: none`. Every later fix round appends the packages it touched to `Touched since gate`. P3 hands both to `plan-verifier` so it re-runs only what changed.
 
 ## P2 — Architecture loop (max 2 fix rounds)
 
@@ -98,24 +100,33 @@ Phase: <P1 | P2 r1 | P2 r2 | P3 r1 | ... | done> · Deferred tests: <T ids | non
    - "Waive the rest" (ask for a one-line reason → `Waivers`),
    - "Stop the run" (ledger keeps the state; resume with `--from arch`).
 
-## P3 — Verify loop (max 2 fix rounds)
+## P3 — Verify + security loop (max 2 fix rounds)
 
-**Verify.** In parallel when `--review-bugs`, otherwise alone:
-- `Agent(subagent_type: "plan-verifier", prompt: "<plan path>. Tests deferred: test-writer disabled. Extra requirements: <text | none>.")`
+**Security pass trigger.** Run it unless `--no-security`, when `git diff --name-only <Base>` (plus untracked files) touches any of:
+- `server/src/modules/**/routes.ts`, `server/src/modules/**/service.ts` or `server/src/adapters/**` (new endpoints, request input, outbound calls);
+- any file that imports `node:fs`, `node:child_process` or `node:net` / `fetch`, or that builds a path, shell command or SQL from input;
+- auth, secrets, tokens or workspace scoping (`_shared/context.ts`, `platform/config.ts`, `repos/**`);
+- client code that renders repo, PR or LLM content (Markdown, `dangerouslySetInnerHTML`, links);
+- `reviewer-core/src/prompt.ts` (untrusted wrapping), `mcp/src/**`, `.claude/hooks/*.sh`, `scripts/*.sh`.
+Otherwise skip it and write `Security: skipped (no qualifying files)` in the ledger.
+
+**Verify.** Dispatch in one message (parallel), as applicable:
+- `Agent(subagent_type: "plan-verifier", prompt: "<plan path>. Tests deferred: test-writer disabled. Extra requirements: <text | none>. Check gate (main session, reuse for unchanged packages): <ledger Check gate lines>. Re-run: <ledger Touched since gate | none>. Known pre-existing failures: <ledger Backlog items marked pre-existing | none>.")`
+- Security pass (when triggered): `Agent(subagent_type: "general-purpose", description: "security pass", prompt: "Read-only security review of <the qualifying files> (diff base <Base>, untracked files included). Load the \`security\` skill via the Skill tool. Spec untrusted inputs: <spec ## Untrusted inputs, or the plan's Security handoff line>. For every endpoint or function that takes a path, URL, query or body from a caller, check it is an allowlist (not just traversal-safe) and that it cannot reach secrets (\`.git/\`, \`.env\`, tokens). Verify each finding in code. Return only: \`file:line | CRITICAL|HIGH|MEDIUM | summary | attack scenario\`, or \`No findings\`. CRITICAL = attacker-controlled input reaching injection, secret leak, auth bypass or broken access control at high confidence.")`
 - `Skill("code-review")` on the working tree (only with `--review-bugs`).
 
-Ledger: plan-verifier `partial` / `not met` rows → `verifier` findings (fingerprint uses the row id, e.g. `verifier:S3.A:<file>`). `not verifiable` rows → shown to the user, never auto-fixed. code-review findings → `code-review`.
+Ledger: plan-verifier `partial` / `not met` rows → `verifier` findings (fingerprint uses the row id, e.g. `verifier:S3.A:<file>`). `not verifiable` rows → shown to the user, never auto-fixed. Security rows → `security` findings (fingerprint `security:<short slug>:<file>`). code-review findings → `code-review`.
 
-**Fix round r (1..2).** Same as P2 steps 1–4, then re-run **only** the sources that had open findings: `plan-verifier` every round, `/code-review` only if it had findings, and `architecture-reviewer recheck:` (fix files only) whenever the fix touched production code. Same exit, oscillation and round-limit rules as P2.
+**Fix round r (1..2).** Same as P2 steps 1–4, then re-run **only** the sources that had open findings: `plan-verifier` every round (with `Re-run:` = packages the fix touched), the security pass only if it had open CRITICAL/HIGH rows (scoped to the fix files plus the files of those rows), `/code-review` only if it had findings, and `architecture-reviewer recheck:` (fix files only) whenever the fix touched production code. Same exit, oscillation and round-limit rules as P2.
 
-`VERIFIED` (deferred T rows allowed) and nothing `open` → P4.
+`VERIFIED` (deferred T rows allowed), no security CRITICAL/HIGH `open`, and nothing else `open` → P4.
 
 ## Triage (P2 and P3, before each fix round)
 
 | Finding | Action |
 |---|---|
-| CRITICAL, WARNING, `gate` failure, verifier `not met` / `partial` | fix automatically |
-| SUGGESTION, nits | one AskUserQuestion (multiSelect) per round: fix now / backlog / waive |
+| CRITICAL, WARNING, `gate` failure, verifier `not met` / `partial`, `security` CRITICAL / HIGH | fix automatically |
+| SUGGESTION, nits, `security` MEDIUM | one AskUserQuestion call per round with one **single-select** question per finding (fix now / backlog / waive; at most 4 per call, batch the rest) — never one multiSelect over mixed options |
 | fix report `needs-human`, or a finding that contradicts the plan or spec | AskUserQuestion: waive (reason) / stop and re-plan manually |
 | verifier `not verifiable` | show; the user decides (usually a manual check) |
 
@@ -125,19 +136,24 @@ Waived fingerprints are passed to every later recheck so they aren't raised agai
 
 Unless `--no-docs`: `Agent(subagent_type: "doc-writer", prompt: "<plan path>")`. Collect its "proposed human edits".
 
-## P5 — Self-review and summary
+## P5 — Summary and self-review handoff
 
-1. `Skill("pr-self-review")`. `BLOCKED` → one fix round (`self-review` findings, same fix steps) → re-run once. Still `BLOCKED` → stop and report.
-2. Set the ledger `Phase: done`. Final message (short):
+`pr-self-review` is `disable-model-invocation: true`: never call `Skill("pr-self-review")` (it fails) and never replicate its workflow by other means. The user starts it.
+
+1. Set the ledger `Phase: awaiting /pr-self-review`. Send the final message below and stop.
+2. When the user then runs `/pr-self-review` in this session and it returns `BLOCKED`: add its CRITICAL rows as `self-review` findings, run one fix round (same fix steps as P2), set `Phase: awaiting /pr-self-review (after fix)`, and ask the user to run it again. Still `BLOCKED` after that → stop and report. On `✅ Ready for PR` set `Phase: done`.
+
+Final message (short):
 
 ```
-/run-plan <plan path> — <DONE | STOPPED at P#>
+/run-plan <plan path> — <DONE (pending /pr-self-review) | STOPPED at P#>
 Spec: <path | —> · Files changed: <n> (`git diff --stat <Base>` totals)
-Checks: <per package: ok/FAIL> · Arch: <PASS after r rounds> · Verifier: <VERIFIED | GAPS n>
+Checks: <per package: ok/FAIL> · Arch: <PASS after r rounds> · Verifier: <VERIFIED | GAPS n> · Security: <clean | n open | skipped>
 Waived: <F ids + reasons | none> · Backlog: <F ids | none> · Needs human: <… | none>
 Deferred tests: <T ids> → run test-writer manually when re-enabled
 Docs: <files | skipped> · Proposed human edits: <… | none>
 Suggested commit: <type(scope): summary>
+Next: type `/pr-self-review` as the very first characters of your next prompt (no leading space)
 Retro: optionally run /workflow-retro [--deep] in this session (manual, writes docs/retro/ledger/)
 ```
 

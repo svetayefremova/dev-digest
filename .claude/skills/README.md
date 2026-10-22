@@ -20,7 +20,7 @@ Reusable AI skills that provide specialized knowledge and workflows. Canonical l
 | [mermaid-diagram](mermaid-diagram/SKILL.md) | Shared | Mermaid diagrams in markdown (flowcharts, sequence, ERD, …) |
 | [ears-requirements](ears-requirements/SKILL.md) | Workflow | EARS acceptance criteria for feature specs: patterns, AC line format (priority + verify level), LLM-feature AC patterns, coverage rules |
 | [engineering-insights](engineering-insights/SKILL.md) | Shared | Captures non-obvious discoveries into the touched module's `INSIGHTS.md`; also via `/engineering-insights` |
-| [run-plan](run-plan/SKILL.md) | Workflow | `/run-plan <plan>`: runs an approved plan through implementer → check gate → architecture-review fix loop → plan-verifier fix loop → doc-writer → `/pr-self-review` (test-writer currently skipped, tests deferred) |
+| [run-plan](run-plan/SKILL.md) | Workflow | `/run-plan <plan>`: runs an approved plan through implementer → check gate → architecture-review fix loop → plan-verifier + security-pass fix loop → doc-writer, then asks the user to run `/pr-self-review` (test-writer currently skipped, tests deferred) |
 | [workflow-retro](workflow-retro/SKILL.md) | Workflow | `/workflow-retro [--deep]` (manual only): retro on how a multi-agent run coordinated — timeline, tokens per phase, handoffs, rework → recommendations; base mode inline, `--deep` forks a transcript extractor; writes `docs/retro/ledger/YYYY-MM-DD-<slug>.md` |
 | [pr-self-review](pr-self-review/SKILL.md) | Workflow | Maps the branch diff to relevant domain skills, normalizes severity, blocks `gh pr create`/`merge`/`push` on CRITICAL findings; also via `/pr-self-review` |
 
@@ -40,7 +40,7 @@ Single source of truth for which skills govern which kind of change. The `implem
 | `mcp/` tools, use cases, HTTP adapter | onion-architecture (by analogy: rings in `mcp/CLAUDE.md`), zod, typescript-expert |
 | Any module (always) | engineering-insights (read `INSIGHTS.md` first) |
 | Feature specs and their acceptance criteria (`specs/**`) | ears-requirements |
-| Review only | pr-self-review (not preloaded); security (preloaded only by spec-creator, for threat categories) |
+| Review only | pr-self-review, security (preloaded by no agent; `/run-plan`'s security pass loads `security` at runtime) |
 | Docs (doc-writer) | mermaid-diagram |
 
 ### Agent → preloaded skills
@@ -56,7 +56,7 @@ Must equal the `skills:` frontmatter of each file in `.claude/agents/`.
 | plan-verifier | ears-requirements only (how an AC-k is read and counts as met; best-practice skills invite generic advice instead of criterion-by-criterion verification) |
 | doc-writer | mermaid-diagram, engineering-insights, onion-architecture, frontend-architecture |
 | researcher | none |
-| spec-creator | engineering-insights (read half only), ears-requirements, security (threat categories for Untrusted inputs only; a spec states behaviour, not implementation) |
+| spec-creator | engineering-insights (read half only), ears-requirements (threat categories are inlined in the agent instead of preloading `security`; a spec states behaviour, not implementation) |
 
 ## What Are Skills?
 

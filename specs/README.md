@@ -35,7 +35,7 @@ To change an approved or implemented spec, write a **new** spec with `Supersedes
 
 ## Writing rules
 
-- Template: [`spec-creator.md` → Spec template](../.claude/agents/spec-creator.md#spec-template-use-exactly). Sections: Problem & user, Goals / Non-goals, User stories, Acceptance criteria (EARS), Edge cases, Non-functional requirements, Success signals, Assumptions & dependencies, Inputs and provenance, Untrusted inputs, Module interactions, Design analysis, Open questions, Glossary (optional).
+- Template: [`.claude/reference/spec-creator.md` → Spec template](../.claude/reference/spec-creator.md#spec-template-use-exactly). Sections: Problem & user, Goals / Non-goals, User stories, Acceptance criteria (EARS), Edge cases, Non-functional requirements, Success signals, Assumptions & dependencies, Inputs and provenance, Untrusted inputs, Module interactions, Design analysis, Open questions, Glossary (optional).
 - AC rules (line format with `priority` and `verify`, patterns, LLM patterns, coverage): [`ears-requirements` skill](../.claude/skills/ears-requirements/SKILL.md).
 - English only. EARS triggers: `WHEN` (event), `WHILE` (state), `IF … THEN` (unwanted behaviour), `WHERE` (optional feature), or none (ubiquitous). Exactly one `shall` per criterion.
 - Behaviour, not implementation: no file lists, layers or schemas (that's the plan's job).
@@ -53,4 +53,4 @@ The agent never copies or writes design files. Commit a design next to the spec 
 
 ## Enforcement
 
-`spec-creator` can write only `specs/<module>/SPEC-NN-<slug>.md` with `Status: draft`, a matching unique ID, and never a `README.md`. This is enforced by [`.claude/hooks/spec-creator-write-guard.sh`](../.claude/hooks/spec-creator-write-guard.sh) (PreToolUse on Write, fails closed). Its Bash is read-only via `readonly-bash-guard.sh --profile readonly`.
+`spec-creator` can write only `specs/<module>/SPEC-NN-<slug>.md` with `Status: draft`, a matching unique ID, and never a `README.md`. This is enforced by [`.claude/hooks/spec-creator-write-guard.sh`](../.claude/hooks/spec-creator-write-guard.sh) (PreToolUse on Write|Edit, fails closed; Edit only on an existing draft and never on the `Spec ID:` / `Status:` lines). Its Bash is read-only via `readonly-bash-guard.sh --profile readonly`.
