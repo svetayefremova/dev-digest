@@ -176,7 +176,9 @@ export function ContextAttachTab({ attachments, onSave, title, note, footer }: C
                 <Icon.Menu size={14} />
               </button>
             ) : (
-              <span style={s.handleSpacer} />
+              <span aria-hidden="true" style={s.handleDisabled}>
+                <Icon.Menu size={14} />
+              </span>
             )}
             <Checkbox
               checked={row.attached}

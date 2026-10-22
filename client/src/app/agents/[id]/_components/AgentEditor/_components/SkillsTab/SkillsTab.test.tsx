@@ -90,11 +90,43 @@ describe("SkillsTab", () => {
     expect(screen.getByText("3 of 4 enabled")).toBeInTheDocument();
   });
 
-  it("ArrowUp on a drag handle moves the skill one place earlier and saves the new order", () => {
+  it("ArrowUp on a drag handle swaps with the nearest enabled skill, skipping disabled rows, and saves the new order", () => {
     renderTab();
     fireEvent.keyDown(screen.getByRole("button", { name: "Drag to reorder beta" }), { key: "ArrowUp" });
-    expect(mutate.mock.calls[0]![0].skills.map((s: { skill_id: string }) => s.skill_id)).toEqual(["c", "b", "a", "d"]);
-    expect(rowNames()).toEqual(["gamma", "beta", "alpha", "delta"]);
+    expect(mutate.mock.calls[0]![0].skills.map((s: { skill_id: string }) => s.skill_id)).toEqual(["b", "c", "a", "d"]);
+    expect(rowNames()).toEqual(["beta", "gamma", "alpha", "delta"]);
+  });
+
+  const rowOf = (name: string) =>
+    screen.getAllByRole("listitem").find((li) => within(li).queryByRole("checkbox", { name: `Use ${name} for this agent` }))!;
+
+  it("UI: a disabled row shows a hidden non-interactive handle icon and no drag button", () => {
+    renderTab();
+    const alpha = rowOf("alpha");
+    expect(within(alpha).queryByRole("button")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Drag to reorder alpha" })).toBeNull();
+    expect(alpha.querySelector('[aria-hidden="true"] svg')).not.toBeNull();
+  });
+
+  it("UI: a disabled row is not draggable while an enabled row is", () => {
+    renderTab();
+    expect(rowOf("alpha").getAttribute("draggable")).toBe("false");
+    expect(rowOf("beta").getAttribute("draggable")).toBe("true");
+  });
+
+  it("UI: an enabled row keeps the interactive drag handle button", () => {
+    renderTab();
+    expect(within(rowOf("gamma")).getByRole("button", { name: "Drag to reorder gamma" })).toBeInTheDocument();
+  });
+
+  it("UI: dropping an enabled row onto a disabled row does not save", () => {
+    renderTab();
+    const dataTransfer = { effectAllowed: "" };
+    fireEvent.dragStart(rowOf("gamma"), { dataTransfer });
+    fireEvent.dragOver(rowOf("alpha"), { dataTransfer });
+    fireEvent.drop(rowOf("alpha"), { dataTransfer });
+    expect(mutate).not.toHaveBeenCalled();
+    expect(rowNames()).toEqual(["gamma", "alpha", "beta", "delta"]);
   });
 
   it("ArrowUp on the first skill is a no-op", () => {

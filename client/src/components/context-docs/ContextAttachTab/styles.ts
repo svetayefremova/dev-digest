@@ -49,7 +49,14 @@ export const s = {
     color: "var(--text-muted)",
     cursor: "grab",
   } satisfies CSSProperties,
-  handleSpacer: { width: 18, flexShrink: 0 } satisfies CSSProperties,
+  handleDisabled: {
+    display: "inline-flex",
+    padding: 2,
+    flexShrink: 0,
+    color: "var(--text-muted)",
+    opacity: 0.35,
+    cursor: "not-allowed",
+  } satisfies CSSProperties,
   pathWrap: {
     flex: 1,
     minWidth: 0,

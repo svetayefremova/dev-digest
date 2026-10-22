@@ -152,6 +152,39 @@ describe("ContextAttachTab", () => {
     expect(screen.getByText("1 attached")).toBeInTheDocument();
   });
 
+  const rowOf = (path: string) => screen.getByRole("checkbox", { name: `Attach ${path}` }).closest("li")!;
+  const reorderBtn = (path: string) => screen.queryByRole("button", { name: `Reorder ${path} (use arrow keys)` });
+
+  it("UI: a non-attached row shows a disabled, non-interactive, assistive-tech-hidden drag icon at the left", () => {
+    renderTab([att("docs/beta.md", 0)], save());
+    const row = rowOf("docs/alpha.md");
+    const icon = row.firstElementChild!;
+    expect(icon.tagName).not.toBe("BUTTON");
+    expect(icon).toHaveAttribute("aria-hidden", "true");
+    expect(icon).not.toHaveAttribute("tabindex");
+    expect(icon.querySelector("svg")).not.toBeNull();
+    expect(reorderBtn("docs/alpha.md")).not.toBeInTheDocument();
+    // only the Preview button remains interactive besides the checkbox
+    expect(within(row).getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual(["Preview docs/alpha.md"]);
+  });
+
+  it("UI: an attached row (no filter) keeps the interactive drag-handle button at the left", () => {
+    renderTab([att("docs/beta.md", 0)], save());
+    const row = rowOf("docs/beta.md");
+    expect(row.firstElementChild).toBe(reorderBtn("docs/beta.md"));
+    expect(row.firstElementChild).not.toHaveAttribute("aria-hidden");
+  });
+
+  it("UI: while a filter is active, attached rows show the disabled icon instead of the drag-handle button", () => {
+    renderTab([att("specs/rate.md", 0)], save());
+    fireEvent.change(screen.getByRole("textbox", { name: "Filter documents…" }), { target: { value: "rate" } });
+    const row = rowOf("specs/rate.md");
+    expect(reorderBtn("specs/rate.md")).not.toBeInTheDocument();
+    expect(row.firstElementChild!.tagName).not.toBe("BUTTON");
+    expect(row.firstElementChild).toHaveAttribute("aria-hidden", "true");
+    expect(screen.queryAllByRole("button", { name: /^Reorder / })).toHaveLength(0);
+  });
+
   it("SPEC-01 AC-32: a failed reorder restores the previous order", async () => {
     const onSave = vi.fn<(paths: string[]) => Promise<unknown>>().mockRejectedValue(new Error("500"));
     renderTab([att("docs/beta.md", 0), att("specs/auth.md", 1)], onSave);

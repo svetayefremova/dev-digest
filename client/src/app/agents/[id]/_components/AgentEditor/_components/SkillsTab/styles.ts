@@ -47,6 +47,14 @@ export const s = {
     color: "var(--text-muted)",
     cursor: "grab",
   } satisfies CSSProperties,
+  handleDisabled: {
+    display: "inline-flex",
+    padding: 2,
+    flexShrink: 0,
+    color: "var(--text-muted)",
+    opacity: 0.35,
+    cursor: "not-allowed",
+  } satisfies CSSProperties,
   name: (enabled: boolean): CSSProperties => ({
     flex: 1,
     minWidth: 0,
