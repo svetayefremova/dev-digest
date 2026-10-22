@@ -14,7 +14,7 @@ import {
 import { AppShell } from "@/components/app-shell";
 import { RepoNotFound } from "@/components/repo-not-found";
 import { usePulls, useRefreshRepo } from "@/lib/hooks";
-import { useActiveRepo, useRepoNotFound } from "@/lib/repo-context";
+import { useRepoNotFound } from "@/lib/repo-context";
 import { ApiError } from "@/lib/api";
 import { COLUMN_KEYS, SKELETON_ROWS } from "./constants";
 import { s } from "./styles";
@@ -32,7 +32,6 @@ function PullsPageInner() {
   const repoId = params.repoId;
   const search = useSearchParams();
   const router = useRouter();
-  const { activeRepo } = useActiveRepo();
   const repoNotFound = useRepoNotFound(repoId);
   const { data: pulls, isLoading, isError, error, refetch } = usePulls(repoId);
   const refresh = useRefreshRepo();
@@ -65,21 +64,20 @@ function PullsPageInner() {
       const tb = Date.parse(b.updated_at ?? "") || 0;
       return sort === "oldest" ? ta - tb : tb - ta;
     });
-  const repoName = activeRepo?.full_name ?? repoId;
   const openCount = (pulls ?? []).filter((p) => OPEN_STATUSES.has(p.status)).length;
   const needsReviewCount = (pulls ?? []).filter((p) => p.status === "needs_review").length;
 
   // Stale/unknown :repoId → friendly empty state instead of a 404 error.
   if (repoNotFound) {
     return (
-      <AppShell crumb={[{ label: repoName, mono: true }, { label: t("list.breadcrumb") }]}>
+      <AppShell crumb={[{ label: t("list.crumbWorkspace") }, { label: t("list.breadcrumb") }]}>
         <RepoNotFound />
       </AppShell>
     );
   }
 
   return (
-    <AppShell crumb={[{ label: repoName, mono: true }, { label: t("list.breadcrumb") }]}>
+    <AppShell crumb={[{ label: t("list.crumbWorkspace") }, { label: t("list.breadcrumb") }]}>
       <div style={s.pageHeader}>
         <div>
           <h1 style={s.pageTitle}>{t("list.title")}</h1>

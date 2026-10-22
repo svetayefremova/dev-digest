@@ -69,9 +69,7 @@ function AgentEditorPageInner() {
                 </Button>
               </div>
             </div>
-            <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
-              <AgentEditor agent={agent} tab={tab} onTab={setTab} />
-            </div>
+            <AgentEditor agent={agent} tab={tab} onTab={setTab} />
           </div>
         )}
       </div>

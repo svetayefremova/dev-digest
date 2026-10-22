@@ -2,7 +2,8 @@ import type { CSSProperties } from "react";
 
 /** Co-located styles for SkillsTab. */
 export const s = {
-  wrap: { maxWidth: 760 } satisfies CSSProperties,
+  // position: relative contains the sr-only labels (see ContextAttachTab styles).
+  wrap: { maxWidth: 760, position: "relative" } satisfies CSSProperties,
   header: { display: "flex", alignItems: "center", gap: 12, marginBottom: 12 } satisfies CSSProperties,
   h2: { fontSize: 18, fontWeight: 700 } satisfies CSSProperties,
   search: {
