@@ -1,8 +1,6 @@
 ---
 name: onion-architecture
 description: "Enforces Onion/Ports-and-Adapters layering for the backend packages server/ (@devdigest/api — Fastify + Drizzle/Postgres) and reviewer-core/ (@devdigest/reviewer-core — pure review engine): which layer a piece of code belongs in, the dependency rule between routes/service/repository/adapters, and how the DI container (platform/container.ts) wires concrete adapters behind port interfaces. Use when deciding where new backend logic goes, when a route handler is doing too much (touching Drizzle or an adapter directly), when adding a new modules/<name>/ feature or a new external integration/adapter, when reviewing a PR for layering violations, or when reviewer-core is being consumed from server/. Complements fastify-best-practices (route/plugin/schema mechanics) and drizzle-orm-patterns (query/schema mechanics) — this skill owns cross-layer dependency direction and composition-root wiring, not the mechanics inside a layer."
-metadata:
-  version: "0.1.0"
 ---
 
 # Onion Architecture (backend: `server/`, `reviewer-core/`)

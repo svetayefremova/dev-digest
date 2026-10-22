@@ -18,12 +18,15 @@ Reusable AI skills that provide specialized knowledge and workflows. Canonical l
 | [typescript-expert](typescript-expert/SKILL.md) | Full-stack | Type-level programming, performance, tooling, migrations |
 | [security](security/SKILL.md) | Full-stack | OWASP Top 10:2025, auth, injection, uploads, secrets |
 | [mermaid-diagram](mermaid-diagram/SKILL.md) | Shared | Mermaid diagrams in markdown (flowcharts, sequence, ERD, …) |
+| [ears-requirements](ears-requirements/SKILL.md) | Workflow | EARS acceptance criteria for feature specs: patterns, AC line format (priority + verify level), LLM-feature AC patterns, coverage rules |
 | [engineering-insights](engineering-insights/SKILL.md) | Shared | Captures non-obvious discoveries into the touched module's `INSIGHTS.md`; also via `/engineering-insights` |
+| [run-plan](run-plan/SKILL.md) | Workflow | `/run-plan <plan>`: runs an approved plan through implementer → check gate → architecture-review fix loop → plan-verifier fix loop → doc-writer → `/pr-self-review` (test-writer currently skipped, tests deferred) |
+| [workflow-retro](workflow-retro/SKILL.md) | Workflow | `/workflow-retro [--deep]` (manual only): retro on how a multi-agent run coordinated — timeline, tokens per phase, handoffs, rework → recommendations; base mode inline, `--deep` forks a transcript extractor; writes `docs/retro/ledger/YYYY-MM-DD-<slug>.md` |
 | [pr-self-review](pr-self-review/SKILL.md) | Workflow | Maps the branch diff to relevant domain skills, normalizes severity, blocks `gh pr create`/`merge`/`push` on CRITICAL findings; also via `/pr-self-review` |
 
 ## Routing: change zone → skills
 
-Single source of truth for which skills govern which kind of change. The `planner` agent (`.claude/agents/planner.md`) tags every plan step with skills from this table, and the `implementer` agent (`.claude/agents/implementer.md`) applies exactly those rules. Both agents preload the same full set of implementation skills (`skills:` in their frontmatter); the other agents preload the subsets listed in [Agent → preloaded skills](#agent--preloaded-skills). When adding an implementation skill, add it to this table **and** to the `skills:` list of `planner.md` and `implementer.md` (and of any other agent that should use it).
+Single source of truth for which skills govern which kind of change. The `implementation-planner` agent (`.claude/agents/implementation-planner.md`) tags every plan step with skills from this table, and the `implementer` agent (`.claude/agents/implementer.md`) applies exactly those rules. Both agents preload the same full set of implementation skills (`skills:` in their frontmatter); the other agents preload the subsets listed in [Agent → preloaded skills](#agent--preloaded-skills). When adding an implementation skill, add it to this table **and** to the `skills:` list of `implementation-planner.md` and `implementer.md` (and of any other agent that should use it).
 
 | Change zone | Skills |
 |---|---|
@@ -34,8 +37,10 @@ Single source of truth for which skills govern which kind of change. The `planne
 | `server/` DB schema, queries, migrations | drizzle-orm-patterns, postgresql-table-design |
 | `reviewer-core/` | onion-architecture (purity: no DB/FS/GitHub), typescript-expert |
 | Shared contracts (`server/src/vendor/shared` + `client/src/vendor/shared`) | zod, typescript-expert |
+| `mcp/` tools, use cases, HTTP adapter | onion-architecture (by analogy: rings in `mcp/CLAUDE.md`), zod, typescript-expert |
 | Any module (always) | engineering-insights (read `INSIGHTS.md` first) |
-| Review only (not preloaded by any agent) | security, pr-self-review |
+| Feature specs and their acceptance criteria (`specs/**`) | ears-requirements |
+| Review only | pr-self-review (not preloaded); security (preloaded only by spec-creator, for threat categories) |
 | Docs (doc-writer) | mermaid-diagram |
 
 ### Agent → preloaded skills
@@ -44,12 +49,14 @@ Must equal the `skills:` frontmatter of each file in `.claude/agents/`.
 
 | Agent | Preloaded skills |
 |---|---|
-| planner, implementer | engineering-insights, typescript-expert, zod, next-best-practices, react-best-practices, frontend-architecture, react-testing-library, fastify-best-practices, onion-architecture, drizzle-orm-patterns, postgresql-table-design (the 11 implementation skills) |
+| implementation-planner | the 11 implementation skills below + ears-requirements |
+| implementer | engineering-insights, typescript-expert, zod, next-best-practices, react-best-practices, frontend-architecture, react-testing-library, fastify-best-practices, onion-architecture, drizzle-orm-patterns, postgresql-table-design (the 11 implementation skills) |
 | test-writer | engineering-insights, typescript-expert, zod, react-testing-library, next-best-practices, frontend-architecture, fastify-best-practices, onion-architecture, drizzle-orm-patterns |
 | architecture-reviewer | engineering-insights, onion-architecture, frontend-architecture, next-best-practices, fastify-best-practices, typescript-expert |
-| plan-verifier | none (best-practice skills invite generic advice instead of criterion-by-criterion verification) |
+| plan-verifier | ears-requirements only (how an AC-k is read and counts as met; best-practice skills invite generic advice instead of criterion-by-criterion verification) |
 | doc-writer | mermaid-diagram, engineering-insights, onion-architecture, frontend-architecture |
 | researcher | none |
+| spec-creator | engineering-insights (read half only), ears-requirements, security (threat categories for Untrusted inputs only; a spec states behaviour, not implementation) |
 
 ## What Are Skills?
 
@@ -68,6 +75,6 @@ Skills are modular packages that extend the AI agent with specialized knowledge 
 
 Each skill has:
 
-- `SKILL.md` — Main skill file with rules and conventions (required)
+- `SKILL.md` — Main skill file with rules and conventions (required). Set `metadata.version` only for a vendored third-party skill, to the upstream release you copied; repo-written skills are versioned by git
 - `examples.md` — Code examples showing good/bad patterns (recommended)
 - `references.md` — Sources and rationale (optional)
