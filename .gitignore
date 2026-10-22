@@ -19,6 +19,7 @@ coverage/
 .devdigest/cache/
 clones/
 .claude/pr-review-history/
+.claude/sdd-runs/
 playwright-report/
 test-results/
 

@@ -4,15 +4,15 @@
 # The doc-writer may only write documentation markdown in these places:
 #   - docs/features/<name>.md          (feature docs; NOT docs/features/README.md = human-maintained index)
 #   - README.md                        (root; prompt rule: only when architecture changes)
-#   - <client|server|reviewer-core|e2e>/README.md
-#   - <client|server|reviewer-core|e2e>/docs/**/*.md
+#   - <client|server|reviewer-core|e2e|mcp>/README.md
+#   - <client|server|reviewer-core|e2e|mcp>/docs/**/*.md
 #   - server/src/modules/<module>/README.md   (exactly one level deep)
 #
 # Deliberately NOT allowed (denied by omission):
 #   - docs/agent-prompts/, docs/skills/   originals of reviewer prompts / review skills (product content)
-#   - docs/plans/                         planner-owned
+#   - docs/plans/                         implementation-planner-owned
 #   - .claude/**                          agent / skill / hook config
-#   - reviewer-core/specs/                pre-implementation specs
+#   - specs/                              feature specs (spec-creator-owned)
 #   - TESTING.md                          human-owned cross-package testing policy
 #   - every CLAUDE.md / INSIGHTS.md       human / engineering-insights owned
 #   - client/src/vendor/ui/README.md      vendored
@@ -21,7 +21,7 @@
 #   - all non-.md files
 #
 # Fails CLOSED: anything that can't be positively verified is denied (exit 2).
-# Symlinks are not resolved (same limitation as planner-write-guard.sh).
+# Symlinks are not resolved (same limitation as implementation-planner-write-guard.sh).
 
 set -uo pipefail
 
@@ -30,7 +30,7 @@ deny() {
   exit 2
 }
 
-ALLOWED="docs/features/<name>.md, README.md, <client|server|reviewer-core|e2e>/README.md, <client|server|reviewer-core|e2e>/docs/**/*.md, server/src/modules/<module>/README.md"
+ALLOWED="docs/features/<name>.md, README.md, <client|server|reviewer-core|e2e|mcp>/README.md, <client|server|reviewer-core|e2e|mcp>/docs/**/*.md, server/src/modules/<module>/README.md"
 
 command -v jq >/dev/null 2>&1 || deny "jq not found; cannot verify the target path"
 
@@ -65,8 +65,8 @@ REL="${ABS#"$PROJECT_DIR"/}"
 # 4. Allowlist.
 if [[ "$REL" =~ ^docs/features/.+\.md$ ]] \
   || [[ "$REL" =~ ^README\.md$ ]] \
-  || [[ "$REL" =~ ^(client|server|reviewer-core|e2e)/README\.md$ ]] \
-  || [[ "$REL" =~ ^(client|server|reviewer-core|e2e)/docs/.+\.md$ ]] \
+  || [[ "$REL" =~ ^(client|server|reviewer-core|e2e|mcp)/README\.md$ ]] \
+  || [[ "$REL" =~ ^(client|server|reviewer-core|e2e|mcp)/docs/.+\.md$ ]] \
   || [[ "$REL" =~ ^server/src/modules/[^/]+/README\.md$ ]]; then
   # Never touch dependencies or vendored code even if a pattern matched.
   if [[ "$REL" =~ (^|/)(node_modules|vendor)/ ]]; then

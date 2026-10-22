@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# PreToolUse(Write) guard for the `planner` subagent (wired in .claude/agents/planner.md frontmatter).
+# PreToolUse(Write) guard for the `implementation-planner` subagent
+# (wired in .claude/agents/implementation-planner.md frontmatter).
 #
-# The planner may only write its own files:
-#   - Development Plans:    docs/plans/<verb-phrase>.md
-#   - Agent specifications: docs/agent-specs/<agent-name>.md
-#   Directly in those folders, never their README.md (human-maintained).
+# The implementation-planner may only write Implementation Plans:
+#   - docs/plans/<verb-phrase>.md
+#   Directly in that folder, never its README.md (human-maintained).
 #   - an existing file may be overwritten only while it is still `Status: draft`
-#     (approved/done plans and specs are frozen — someone is executing them)
+#     (approved/done plans are frozen — someone is executing them)
 #
 # Fails CLOSED: anything that can't be positively verified is denied (exit 2).
 
 set -uo pipefail
 
 deny() {
-  echo "planner-write-guard: $1" >&2
+  echo "implementation-planner-write-guard: $1" >&2
   exit 2
 }
 
@@ -26,7 +26,6 @@ FILE_PATH="$(printf '%s' "$INPUT_JSON" | jq -r '.tool_input.file_path // ""' 2>/
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(printf '%s' "$INPUT_JSON" | jq -r '.cwd // ""')}"
 [ -n "$PROJECT_DIR" ] || deny "cannot resolve project dir"
 PLANS_DIR="$PROJECT_DIR/docs/plans"
-SPECS_DIR="$PROJECT_DIR/docs/agent-specs"
 
 # Normalise a relative path against the project dir; reject any `..` segment outright.
 case "$FILE_PATH" in
@@ -39,12 +38,12 @@ esac
 
 DIR="$(dirname "$ABS")"
 BASE="$(basename "$ABS")"
-[ "$DIR" = "$PLANS_DIR" ] || [ "$DIR" = "$SPECS_DIR" ] \
-  || deny "planner may only write to docs/plans/ or docs/agent-specs/ (got: $FILE_PATH)"
+[ "$DIR" = "$PLANS_DIR" ] \
+  || deny "implementation-planner may only write to docs/plans/ (got: $FILE_PATH)"
 case "$BASE" in
-  README.md) deny "${DIR#"$PROJECT_DIR"/}/README.md is maintained by humans" ;;
+  README.md) deny "docs/plans/README.md is maintained by humans" ;;
   *.md) ;;
-  *) deny "plan and spec files must be .md (got: $BASE)" ;;
+  *) deny "plan files must be .md (got: $BASE)" ;;
 esac
 
 if [ -e "$ABS" ]; then

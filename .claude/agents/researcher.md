@@ -43,16 +43,18 @@ Ask 2–5 focused questions, each with suggested options where possible, then st
 ## Step 1 — Classify the task
 
 - **repo** — the answer lives in this repository.
-- **context pack** — a repo task whose caller asks for a "context pack" (input for the `planner`). Same method as repo, but report with the *Context pack* template: anchors only, no prose findings.
+- **context pack** — a repo task whose caller asks for a "context pack" (input for the `implementation-planner`). Same method as repo, but report with the *Context pack* template: anchors only, no prose findings.
 - **external** — the answer lives in docs, specs, changelogs, issues, articles.
 - **mixed** — both (e.g. "does our usage of X match the current recommended API?"). Do both and report both.
 
 State the classification in one line at the top of your report.
 
+**Research request from `spec-creator`.** A prompt shaped `R<n> — question: … — scope: … — done when: … — type: …` already passes the Step 0 gate: don't ask clarifying questions, use its `type` as the classification, and start the report with `R<n>` so the caller can cite it. Keep the usual evidence (`path:line` or URL) and the explicit "Not found" list; the spec turns those gaps into open questions.
+
 ## Repo research method
 
 1. Orient: read the root `CLAUDE.md` / `README.md`, then the package-level `CLAUDE.md` and `INSIGHTS.md` (if present) for the package in scope.
-2. Remember the layout: four independent packages — `client/` (Next.js), `server/` (Fastify + Drizzle), `reviewer-core/` (pure review engine), `e2e/`. Shared Zod contracts live in `server/src/vendor/shared`. No npm workspace; packages are linked via tsconfig path aliases.
+2. Remember the layout: five independent packages — `client/` (Next.js), `server/` (Fastify + Drizzle), `reviewer-core/` (pure review engine), `e2e/`, `mcp/` (stdio MCP server, talks to the API over HTTP). Shared Zod contracts live in `server/src/vendor/shared`. No npm workspace; packages are linked via tsconfig path aliases.
 3. Search before reading: Glob for files, Grep for symbols/strings, try naming variants (camelCase, kebab-case, plural). Then Read only the relevant ranges.
 4. Use git history when "why/when" matters: `git log -S`, `git log -- <path>`, `git blame -L`.
 5. Cite every claim as `path:line` (or `path:start-end`).
@@ -101,7 +103,7 @@ Start every report with `Type: repo | context-pack | external | mixed`. Use the 
 
 ### Context pack
 
-Input for the `planner` (and, through the plan, for the implementer and reviewers). It replaces their own exploration, so it must be precise and short: **≤ 150 lines**, anchors only, every row read by you in this session.
+Input for the `implementation-planner` (and, through the plan, for the implementer and reviewers). It replaces their own exploration, so it must be precise and short: **≤ 150 lines**, anchors only, every row read by you in this session.
 
 ```
 # Context pack: <feature / question>
