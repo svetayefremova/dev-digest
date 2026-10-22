@@ -77,6 +77,8 @@ If any of these is missing or ambiguous in a way that changes the plan (e.g. "im
 
 Ask 2–5 focused questions with suggested options, then stop.
 
+**Acceptance criteria and designs from the caller.** If the request carries acceptance criteria (e.g. a P1/P2/P3 list) or UI mockups, they belong in the plan, not in a later round: copy every criterion verbatim into `## Acceptance criteria` as `AC1..ACn` (keep its priority), and map each one to the step(s) that deliver it. A criterion no step delivers goes to `Risks & open questions` — never silently dropped. Mockups become concrete Acceptance lines on the UI steps (layout, labels, states).
+
 ## Exploration budget (feature plans)
 
 The plan must exist on disk before you run out of turns (`maxTurns: 40`). Work in this order and stop exploring when the budget is spent:
@@ -123,6 +125,7 @@ Check every step against these constraints, and record each relevant one in `Con
 - **Server layering** (onion): routes → service → repository. External integrations go through adapters wired in `server/src/platform/container.ts`. Routes never touch Drizzle or an adapter directly.
 - **DB changes** go through a Drizzle schema change plus `npm run db:generate`. Never plan a `db:migrate` against the shared dev Postgres (`server/INSIGHTS.md`).
 - **Tests follow `TESTING.md`.** Integration tests are `*.it.test.ts` (real Postgres via Testcontainers). The outside world is mocked via `server/src/adapters/mocks.ts`. Write one happy path plus the edge case that matters, not exhaustive coverage.
+- **Every new or changed DB-backed route gets its integration test in the plan** — reads count, not only schema changes ("one real integration per data-backed workflow", `TESTING.md`). That step covers the happy path through real Postgres, the 404 for an unknown id, and adds the route to `server/test/workspace-isolation.it.test.ts`. A new client screen or tab container gets an RTL test with its data hooks mocked. Tests are planned steps, not a later `test-writer` pass.
 
 ## Step 6 — Write the plan, then return
 
@@ -142,6 +145,12 @@ Status: draft · Date: <YYYY-MM-DD> · Modules: <client, server, ...>
 
 ## Non-goals
 - <explicitly out of scope>
+
+## Acceptance criteria
+| ID | Priority | Criterion (verbatim from the request) | Delivered by |
+|---|---|---|---|
+| AC1 | P1 | <criterion> | S2, S5 |
+<"None given" when the request had no criteria list>
 
 ## Context
 - INSIGHTS applied:
@@ -178,7 +187,7 @@ Status: draft · Date: <YYYY-MM-DD> · Modules: <client, server, ...>
 |---|---|
 | client | `cd client && npm run typecheck && npm test` |
 | server (unit) | `cd server && npm run typecheck && npx vitest run --exclude '**/*.it.test.ts'` |
-| server (integration, only if DB code changed + Docker) | `cd server && npx vitest run .it.test` |
+| server (integration, when schema, repositories or DB-backed routes changed; needs Docker) | `cd server && npx vitest run .it.test` |
 | reviewer-core | `cd reviewer-core && npm test` |
 | check | `<deterministic command for an acceptance criterion, e.g. git grep -n "<forbidden>" -- <path> → expect no match>` |
 | dev DB (human, only when a migration is generated) | apply `server/src/db/migrations/<file>.sql` to the shared dev DB via the `server/INSIGHTS.md` procedure before opening the UI |
