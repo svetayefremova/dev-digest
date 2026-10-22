@@ -2,7 +2,7 @@
 # PreToolUse(Bash) guard for the read-only subagents.
 # Wired in the frontmatter of:
 #   - architecture-reviewer.md, researcher.md, spec-creator.md  → --profile readonly
-#   - plan-verifier.md                         → --profile verifier
+#   - plan-verifier.md, test-writer.md         → --profile verifier
 #
 # Allowlist, fails CLOSED (exit 2). The command is scanned quote-aware and split into segments on
 # `&&`, `||`, `;`, `|` and newlines; every segment must pass.

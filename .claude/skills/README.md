@@ -20,7 +20,7 @@ Reusable AI skills that provide specialized knowledge and workflows. Canonical l
 | [mermaid-diagram](mermaid-diagram/SKILL.md) | Shared | Mermaid diagrams in markdown (flowcharts, sequence, ERD, …) |
 | [ears-requirements](ears-requirements/SKILL.md) | Workflow | EARS acceptance criteria for feature specs: patterns, AC line format (priority + verify level), LLM-feature AC patterns, coverage rules |
 | [engineering-insights](engineering-insights/SKILL.md) | Shared | Captures non-obvious discoveries into the touched module's `INSIGHTS.md`; also via `/engineering-insights` |
-| [run-plan](run-plan/SKILL.md) | Workflow | `/run-plan <plan>`: runs an approved plan through implementer → check gate → architecture-review fix loop → plan-verifier + security-pass fix loop → doc-writer, then asks the user to run `/pr-self-review` (test-writer currently skipped, tests deferred) |
+| [run-plan](run-plan/SKILL.md) | Workflow | `/run-plan <plan>`: runs an approved plan through implementer → check gate → test-writer → architecture-review fix loop → plan-verifier + security-pass fix loop → doc-writer, then asks the user to run `/pr-self-review` (`--no-tests` defers tests) |
 | [workflow-retro](workflow-retro/SKILL.md) | Workflow | `/workflow-retro [--deep]` (manual only): retro on how a multi-agent run coordinated — timeline, tokens per phase, handoffs, rework → recommendations; base mode inline, `--deep` forks a transcript extractor; writes `docs/retro/ledger/YYYY-MM-DD-<slug>.md` |
 | [pr-self-review](pr-self-review/SKILL.md) | Workflow | Maps the branch diff to relevant domain skills, normalizes severity, blocks `gh pr create`/`merge`/`push` on CRITICAL findings; also via `/pr-self-review` |
 

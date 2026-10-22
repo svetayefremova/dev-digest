@@ -72,7 +72,7 @@ DevDigest calls an LLM through an injected `LLMProvider`, and PR content is atta
 
 - Every edge case, error state, untrusted input and module-interaction failure in the spec maps to an AC or to a Non-goal.
 - Every user story is covered by at least one `must` AC.
-- `[assumed default — confirm]` on an AC must match an open question in the spec.
+- An `assumed default — confirm` mark on an AC must match an open question in the spec.
 - An AC never contains a guessed value. While unknown it carries `[NEEDS CLARIFICATION: <question>]`; a spec with any marker left is not ready for planning.
 - Every AC has exactly one row in the spec's `## Traceability` table: its source and a behaviour-only **verification hint** (state + action → observable response at the AC's `verify` level). The AC line format itself does not change.
 

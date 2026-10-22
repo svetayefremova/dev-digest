@@ -96,7 +96,7 @@ duplicate what `Container` already does.
 
 ## 4. `reviewer-core` as the gold-standard pure core
 
-`server/src/modules/reviews/run-executor.ts:187-213` is the real consumption
+the `reviewPullRequest` call in `server/src/modules/reviews/run-executor.ts` is the real consumption
 boundary and the template to copy for any similar integration:
 
 > "The pure review pipeline lives in @devdigest/reviewer-core (shared with the CI runner). The service owns only I/O: repo-intel context resolution above, and persistence + observability below."
@@ -173,7 +173,7 @@ engine itself touches nothing external.
 | How thin should `routes.ts` be? | Validate → one service call → shape HTTP response. Nothing else |
 | Where does a new adapter's interface go? | `vendor/shared/adapters.ts`, implementation in `adapters/<name>/`, wired via a `Container` getter |
 | Should we add awilix/tsyringe/inversify? | No — `Container` already is this repo's DI mechanism |
-| Where does `reviewer-core` get called from? | The service layer only (see `reviews/run-executor.ts:187-213`), never `routes.ts` |
+| Where does `reviewer-core` get called from? | The service layer only (see the `reviewPullRequest` call in `reviews/run-executor.ts`), never `routes.ts` |
 | Is a module reaching another module's repo OK? | No — go through the container's shared getter (`agentsRepo`, `reviewRepo`) |
 
 See `examples.md` for good/bad code pairs and `README.md` for the full

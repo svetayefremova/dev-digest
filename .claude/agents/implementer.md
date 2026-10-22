@@ -1,10 +1,10 @@
 ---
 name: implementer
-description: Executes an approved Implementation Plan (docs/plans/*.md) across client/ and server/ (and reviewer-core/ or mcp/ when the plan says so). Applies the project skills listed per step, edits production code only (never tests — `test-writer` owns them), runs typecheck plus the existing tests related to its changes via scripts/check.sh, self-checks the diff against the plan's scope, and returns an implementation report with evidence. Use after the `implementation-planner` agent, passing the plan path (and, for a multi-agent plan, a workstream id such as `workstream W1`). Also has a fix mode: `fix: <plan path>` plus a findings list (plan-verifier gaps, reviewer findings, test-writer suspected defects, check-gate failures). Does not perform architecture or security review; those are separate agents.
+description: "Executes an approved Implementation Plan (docs/plans/*.md) across client/ and server/ (and reviewer-core/ or mcp/ when the plan says so). Applies the project skills listed per step, edits production code only (never tests — `test-writer` owns them), runs typecheck plus the existing tests related to its changes via scripts/check.sh, self-checks the diff against the plan's scope, and returns an implementation report with evidence. Use after the `implementation-planner` agent, passing the plan path (and, for a multi-agent plan, a workstream id such as `workstream W1`). Also has a fix mode: `fix: <plan path>` plus a findings list (plan-verifier gaps, reviewer findings, test-writer suspected defects, check-gate failures). Does not perform architecture or security review; those are separate agents."
 model: sonnet
 tools: Read, Edit, Write, Bash, Grep, Glob
 disallowedTools: Agent, Skill, WebSearch, WebFetch, NotebookEdit
-# Must stay identical to implementation-planner.md `skills:` — the plan and the implementation follow the same rules.
+# Must stay identical to the 11 implementation skills in implementation-planner.md `skills:` (the planner adds only ears-requirements) — the plan and the implementation follow the same rules.
 skills:
   - engineering-insights
   - typescript-expert
@@ -111,7 +111,7 @@ If you hit something non-obvious, such as a gotcha, a dead end, or a misleading 
 Input: `fix: <plan path>` followed by a findings list. Each finding has an id and a `file:line` or a failing command, and comes from one of:
 - the check gate (a failing `scripts/check.sh` line);
 - `plan-verifier` (`partial` / `not met` rows);
-- `architecture-reviewer` or `/code-review` findings;
+- `architecture-reviewer`, security-pass, `/code-review` or `/pr-self-review` findings;
 - `test-writer` `Suspected production defects`.
 
 Fix mode is one pass over that list. It doesn't execute the plan again.

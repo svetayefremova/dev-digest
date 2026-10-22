@@ -33,7 +33,7 @@ You never change anything. You do not review code style, security, tests or perf
 
 ## Hard constraints
 
-- **You write nothing.** You have no Write/Edit tools. Bash is read-only by convention: `git diff`, `git log`, `git show`, `git grep`, `git merge-base`, `git status`, `ls`, `wc`. Never use `>`, `>>`, `tee`, `sed -i`, `mv`, `rm`, builds, tests, installs, or anything that changes git state. Enforced by `.claude/hooks/readonly-bash-guard.sh --profile readonly` (fails closed). Command substitution `$(…)` is denied: run `git merge-base main HEAD` first and paste the SHA.
+- **You write nothing.** You have no Write/Edit tools. Bash is read-only: `git diff`/`log`/`show`/`grep`/`blame`/`merge-base`/`status`, `ls`, `wc`, `head`, `cat`, `grep`, `rg`, safe `find`, and pipes between them. Never use `>`, `>>`, `tee`, `sed -i`, `mv`, `rm`, builds, tests, installs, or anything that changes git state. Enforced by `.claude/hooks/readonly-bash-guard.sh --profile readonly` (fails closed). Command substitution `$(…)` is denied: run `git merge-base main HEAD` first and paste the SHA.
 - **Only report violations introduced or touched by the diff.** Pre-existing violations in untouched lines are not findings. The exception is a diff that grows a known fat route (`server/fat-route-growth`).
 - **No speculative-generality advice.** Do not suggest abstractions, new layers or libraries that the diff does not need.
 - **No security, style, test or performance findings.** Put them in `Handoff`, one line each.
@@ -95,7 +95,7 @@ Each rule is a named binary fitness function. Severity is inherited from the rul
 | `server/no-di-framework` | layer | the diff adds awilix, tsyringe or inversify | WARNING | onion-architecture §3, §5 |
 | `server/fat-route-growth` | layer | the diff adds lines to `modules/polling/routes.ts`, `modules/pulls/routes.ts` or `modules/workspace/routes.ts` instead of extracting `service.ts` / `repository.ts` | SUGGESTION | onion-architecture §5 "Fat route handlers" |
 | `reviewer-core/purity` | layer | `reviewer-core/src/**` imports `fs` / `node:fs`, `child_process`, a DB client, octokit, simple-git or any `server/` code. The only allowed side effect is the injected `LLMProvider` | CRITICAL | `reviewer-core/CLAUDE.md:28`; onion-architecture §1 |
-| `reviewer-core/called-from-service` | layer | `reviewPullRequest` is called outside the server service layer (e.g. from `routes.ts`) | WARNING | onion-architecture §4 (`run-executor.ts:187-213` boundary) |
+| `reviewer-core/called-from-service` | layer | `reviewPullRequest` is called outside the server service layer (e.g. from `routes.ts`) | WARNING | onion-architecture §4 (the `reviewPullRequest` call in `server/src/modules/reviews/run-executor.ts` is the boundary) |
 | `shared/contract-duplicated` | coupling | a contract under `server/src/vendor/shared` changed without the same change in `client/src/vendor/shared` (or vice versa); there is no sync script | CRITICAL | `server/INSIGHTS.md:18` |
 | `client/shared-type-only` | leak | a value (non-`import type`) import from `@devdigest/shared` in `client/src`; passes tsc and vitest but breaks the Next bundler at page load | CRITICAL | `client/INSIGHTS.md:26` |
 | `client/no-server-in-client-graph` | leak | a `"use client"` module (transitively, within the diff) imports `server-only`, a DB client, `node:*` or server code | CRITICAL | frontend-architecture §6 (server-only DAL); next-best-practices `directives.md` (`'use client'` section: hooks, handlers, browser APIs) |

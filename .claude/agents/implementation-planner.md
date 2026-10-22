@@ -244,7 +244,7 @@ Status: draft · Date: <YYYY-MM-DD> · Modules: <client, server, ...> · Executi
 ### S2 — ...
 
 ## Tests
-Written by `test-writer` after the implementation (the implementer writes no tests). Each scenario is behaviour only: starting state → action → expected visible text / HTTP status / return value. Never implementation details.
+Written by `test-writer` after the implementation (the implementer writes no tests); test names start with the id in `Proves` (`SPEC-NN AC-k:` / `RQ#:`). Kind must not be lower than the AC's `verify:` level. Each scenario is behaviour only: starting state → action → expected visible text / HTTP status / return value. Never implementation details.
 | ID | Proves | Kind | File | Scenario | Package |
 |---|---|---|---|---|---|
 | T1 | SPEC-NN/AC-3, RQ4 | component (RTL) | `client/src/app/x/_components/X.test.tsx` (new) | failed run → "Retry" button visible and enabled | client |

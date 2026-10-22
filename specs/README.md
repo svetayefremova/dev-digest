@@ -2,7 +2,7 @@
 
 Feature specifications for Spec Driven Development. A spec states **what** the product must do and **for whom**, as testable EARS acceptance criteria, before any plan or code exists. Specs are written by the [`spec-creator`](../.claude/agents/spec-creator.md) agent; this README is human-maintained.
 
-Flow: request (+ designs) → `spec-creator` (round 1: draft + questions → answers → round 2) → human sets `Status: approved` → `implementation-planner <spec path>` → `implementer` (production code) → check gate → `test-writer` (tests named `AC-k: …` for every `verify: unit | integration` AC) → `plan-verifier` (checks every `AC-k`) ∥ reviewers → fix loop → human sets `Status: implemented`.
+Flow: request (+ designs) → `spec-creator` (round 1: draft + questions → answers → round 2) → human sets `Status: approved` → `implementation-planner <spec path>` → `implementer` (production code) → check gate → `test-writer` (tests named `SPEC-NN AC-k: …` for every `verify: unit | integration` AC) → `plan-verifier` (checks every `AC-k`) ∥ reviewers → fix loop → human sets `Status: implemented`.
 
 ## Layout
 
