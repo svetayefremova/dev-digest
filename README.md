@@ -34,6 +34,10 @@ flowchart LR
     API --> PG
   end
 
+  CC["Claude Code"] -->|stdio| MCP
+  MCP["mcp/<br/>stdio MCP server"]
+  MCP -->|"REST /repos /pulls /agents /runs"| API
+
   CLONE["git clone (add repo)"] --> INDEX["repo-intel<br/>index symbols + import graph<br/>→ repo map"]
   API --> CLONE
   INDEX -->|"repo map = review context"| ENGINE
@@ -61,7 +65,8 @@ Each package has its own README with deeper diagrams:
 [`client`](client/README.md) (UI route map) ·
 [`server`](server/README.md) (API map) ·
 [`reviewer-core`](reviewer-core/README.md) (review pipeline) ·
-[`e2e`](e2e/README.md).
+[`e2e`](e2e/README.md) ·
+[`mcp`](mcp/README.md).
 
 ## What works on day 1
 
@@ -131,6 +136,14 @@ cd ../client && pnpm install && pnpm dev               # web on :3000
 `server/`: `dev` · `build` · `db:migrate` · `db:seed` · `db:generate` · `test` · `typecheck`
 (unit/integration split: `pnpm exec vitest run --exclude '**/*.it.test.ts'` / `pnpm exec vitest run .it.test`)
 `client/`: `dev` · `build` · `start` · `test` · `typecheck`
+
+## MCP (Claude Code)
+
+[`mcp/`](mcp/README.md) is a local stdio MCP server that exposes DevDigest to
+Claude Code: list reviewer agents, run one on a PR, read findings and repo
+conventions. Run `cd mcp && npm install`, start the stack (`./scripts/dev.sh`),
+then open Claude Code in the repo root; `.mcp.json` registers the `devdigest`
+server (check `/mcp`).
 
 ## Testing & CI
 
