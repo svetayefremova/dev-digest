@@ -12,7 +12,7 @@ Local stdio [MCP](https://modelcontextprotocol.io) server that lets Claude Code 
 | `run_agent_on_pr` | `pr` (int), `agent` (name or id), `repo?` | Start (or reuse an in-flight) review, wait up to `DEVDIGEST_MCP_WAIT_MS`, return verdict, counts, top 3 findings, `run_id`. Paid LLM run |
 | `get_findings` | `repo?`, `pr?`, `agent?`, `run_id?`, `severity?` (CRITICAL/WARNING/SUGGESTION), `limit?` (default 20), `response_format?` (concise/detailed) | Read the latest finished review or a given `run_id`; never starts a review |
 | `get_conventions` | `repo?`, `status?` (accepted/pending/all, default accepted), `limit?` (default 30), `response_format?` | Repo coding conventions with `file:line` evidence |
-| `get_blast_radius` | `repo?`, `pr` | Not implemented: always returns an error |
+| `get_blast_radius` | `repo?`, `pr` | Read-only. Changed symbols, callers (`file:line`), affected endpoints and crons for a PR, from `GET /pulls/:id/blast`; see [blast radius](../docs/features/add-blast-radius.md) |
 
 ## Environment
 

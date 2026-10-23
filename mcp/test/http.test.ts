@@ -34,10 +34,29 @@ describe('HttpDevDigestApi', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it('port has exactly the 8 methods (type level)', () => {
+  it('port has exactly the 9 methods (type level)', () => {
     expectTypeOf<keyof DevDigestApi>().toEqualTypeOf<
-      'listRepos' | 'listPulls' | 'listAgents' | 'startReview' | 'activeRuns' | 'listRuns' | 'reviewsForPull' | 'conventions'
+      | 'listRepos'
+      | 'listPulls'
+      | 'listAgents'
+      | 'startReview'
+      | 'activeRuns'
+      | 'listRuns'
+      | 'reviewsForPull'
+      | 'conventions'
+      | 'blast'
     >();
+  });
+
+  it('RQ-T6: blast issues GET /pulls/:id/blast and returns the body', async () => {
+    const body = { changed_symbols: [], downstream: [], summary: '0 symbols', degraded: false, reason: null };
+    const fetchMock = vi.fn(async () => jsonRes(200, body));
+    vi.stubGlobal('fetch', fetchMock);
+    const res = await new HttpDevDigestApi('http://localhost:3001').blast('p1');
+    expect(res).toEqual(body);
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('http://localhost:3001/pulls/p1/blast');
+    expect(init.method).toBe('GET');
   });
 
   it('listAgents drops system_prompt in the adapter', async () => {
@@ -47,12 +66,12 @@ describe('HttpDevDigestApi', () => {
     expect(agents[0]).toMatchObject({ id: 'a', name: 'n', enabled: true });
   });
 
-  it('exposes exactly the 8 port methods (least privilege)', () => {
+  it('exposes exactly the 9 port methods (least privilege)', () => {
     const methods = Object.getOwnPropertyNames(HttpDevDigestApi.prototype)
       .filter((n) => n !== 'constructor' && n !== 'request')
       .sort();
     expect(methods).toEqual(
-      ['activeRuns', 'conventions', 'listAgents', 'listPulls', 'listRepos', 'listRuns', 'reviewsForPull', 'startReview'].sort(),
+      ['activeRuns', 'blast', 'conventions', 'listAgents', 'listPulls', 'listRepos', 'listRuns', 'reviewsForPull', 'startReview'].sort(),
     );
   });
 });

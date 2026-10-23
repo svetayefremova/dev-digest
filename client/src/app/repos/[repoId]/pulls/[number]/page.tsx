@@ -141,6 +141,7 @@ function PRDetailPageInner() {
         {tab === "overview" && (
           <OverviewTab
             prId={prId}
+            repoId={repoId}
             prBody={pr.body}
             reviews={runs}
             prRuns={prRuns}

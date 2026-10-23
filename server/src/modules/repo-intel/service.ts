@@ -310,6 +310,8 @@ export class RepoIntelService implements RepoIntel {
    * Persistent-index blast (T3): reads symbols / resolved references / file_rank
    * / file_facts straight from Postgres — NO clone parsing on the hot path.
    * Returns `null` when the index isn't usable (caller falls back to ripgrep).
+   * Callers are capped at MAX_CALLERS_PER_SYMBOL per changed symbol (rank-desc).
+   * A `partial` index returns its data tagged `degraded: true, reason: 'index_partial'`.
    *
    * Callers are PRECISE: only references whose `decl_file` resolved to a changed
    * file count. That favours precision over recall — an ambiguous
@@ -321,6 +323,12 @@ export class RepoIntelService implements RepoIntel {
   ): Promise<BlastResult | null> {
     const state = await this.repo.tryGetIndexState(repoId);
     if (!state || (state.status !== 'full' && state.status !== 'partial')) return null;
+
+    // A `partial` index keeps its data but is flagged so consumers can warn.
+    const persistentTag: Pick<BlastResult, 'degraded' | 'reason'> =
+      state.status === 'partial'
+        ? { degraded: true, reason: 'index_partial' }
+        : { degraded: false };
 
     // Changed symbols = declared in a changed file. Skip the qualified
     // `Class.method` dual-emit (the bare form already covers the name).
@@ -338,7 +346,7 @@ export class RepoIntelService implements RepoIntel {
       nameSet.add(s.name);
     }
     if (nameSet.size === 0) {
-      return { changedSymbols, callers: [], impactedEndpoints: [], degraded: false };
+      return { changedSymbols, callers: [], impactedEndpoints: [], ...persistentTag };
     }
 
     // Resolved cross-file callers.
@@ -384,12 +392,21 @@ export class RepoIntelService implements RepoIntel {
       for (const e of f.endpoints) endpoints.add(e);
     }
 
+    // Cap callers PER changed symbol (callers is already rank-desc).
+    const perSymbol = new Map<string, number>();
+    const capped = callers.filter((c) => {
+      const n = perSymbol.get(c.viaSymbol) ?? 0;
+      if (n >= MAX_CALLERS_PER_SYMBOL) return false;
+      perSymbol.set(c.viaSymbol, n + 1);
+      return true;
+    });
+
     return {
       changedSymbols,
-      callers: callers.slice(0, MAX_CALLERS_PER_SYMBOL),
+      callers: capped,
       impactedEndpoints: [...endpoints],
       factsByFile,
-      degraded: false,
+      ...persistentTag,
     };
   }
 

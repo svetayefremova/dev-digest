@@ -1,4 +1,4 @@
-import type { Agent, ConventionScan, PrMeta, Repo, ReviewRecord, RunSummary } from '@devdigest/shared';
+import type { Agent, BlastRadiusResponse, ConventionScan, PrMeta, Repo, ReviewRecord, RunSummary } from '@devdigest/shared';
 
 /** In-flight run row (shape of GET /pulls/:id/runs/active; no shared contract). */
 export interface ActiveRun {
@@ -15,7 +15,7 @@ export interface StartReviewResponse {
 }
 
 /**
- * Port to the DevDigest API. Exactly 8 methods; 7 are reads. The only write is
+ * Port to the DevDigest API. Exactly 9 methods; 8 are reads. The only write is
  * startReview, which always targets a single agent (never "all").
  */
 export interface DevDigestApi {
@@ -27,4 +27,5 @@ export interface DevDigestApi {
   listRuns(prId: string): Promise<RunSummary[]>;
   reviewsForPull(prId: string): Promise<ReviewRecord[]>;
   conventions(repoId: string): Promise<ConventionScan>;
+  blast(prId: string): Promise<BlastRadiusResponse>;
 }

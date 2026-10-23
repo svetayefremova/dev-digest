@@ -63,7 +63,13 @@ describe('protocol smoke', () => {
     // isError results must pass even though the tool declares an outputSchema
     const err = await client.callTool({ name: 'get_findings', arguments: { pr: 99 } });
     expect(err.isError).toBe(true);
-    const stub = await client.callTool({ name: 'get_blast_radius', arguments: { pr: 3 } });
-    expect(stub.isError).toBe(true);
+    const blast = await client.callTool({ name: 'get_blast_radius', arguments: { pr: 3 } });
+    expect(blast.isError).toBeFalsy();
+    expect((blast.structuredContent as any).pr).toBe(3);
+    expect(api.blastPrIds).toEqual(['p3']);
+    const blastTool = tools.find((t) => t.name === 'get_blast_radius')!;
+    expect(blastTool.annotations?.readOnlyHint).toBe(true);
+    expect(blastTool.annotations?.openWorldHint).toBe(false);
+    expect(instr).not.toContain('not implemented');
   });
 });
