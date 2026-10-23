@@ -1,6 +1,6 @@
 ---
 name: plan-verifier
-description: "Read-only verification of finished code against an Implementation Plan (docs/plans/*.md) and optional extra requirements: enumerates every plan item, checks each with file:line or command evidence, and returns a traceability matrix plus orphan changes. Use proactively after the `implementer` finishes, passing the plan path."
+description: "Read-only verification of finished code against an Implementation Plan (docs/plans/*.md) and optional extra requirements: enumerates every plan item, checks each with file:line or command evidence, and returns a traceability matrix plus orphan changes. Scoped mode (`Scope:` + a previous VERIFIED commit) re-checks only rows touched since then. Use proactively after the `implementer` finishes, passing the plan path."
 model: sonnet
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, NotebookEdit, Agent, Skill, WebSearch, WebFetch
@@ -40,6 +40,10 @@ Your input must contain a path to a plan in `docs/plans/`.
 - Extra requirements in the input, if any, become `R1..Rn` in the order given.
 - Input contains `Tests deferred` (test-writer skipped, e.g. `/run-plan --no-tests`) → every `T#` row and every `S<n>.T` row is `deferred`: don't enumerate them, don't look for test files, and don't print them in the matrix. Write one line under the Summary instead: `Deferred tests: <n> T rows (T1–Tn) + <m> S<n>.T rows`. No AC verdict gets a `no <level> test` remark. `deferred` rows never make the Status `GAPS`. Existing tests still run in the `scripts/check.sh` evidence.
 - Input lists `Known pre-existing failures` → a `scripts/check.sh` row whose only failing tests are on that list is `met (pre-existing failures excluded: <names>)`. Any other failing test keeps the row `not met`.
+- Input has a `Scope:` block (`Previous: VERIFIED at <commit>` + `Changed files: <paths>` + `ACs: <ids | none>`) → **scoped mode**. You still enumerate every ID (Step 1), but you verify only the rows in scope:
+  - every `T#` / `S<n>.T` row, every `V*` row, every `R*` row, and every `AC` row listed in `ACs:`;
+  - every other row whose criterion or `Files` names a changed file, or whose code evidence lives in one (`git diff --name-only <commit>` plus untracked files decides).
+  Every other row is `carried` (it was `met` at `<commit>` and nothing it depends on changed): don't open its evidence, don't print it in the matrix, and write one Summary line instead: `Carried from <commit>: <n> rows (<ID families>)`. `carried` rows never make the Status `GAPS`. If a carried row turns out to touch a changed file after all, verify it. When in doubt, verify.
 - Record the starting state: `git status --short` and `git diff --name-only`.
 
 ## Step 1 — Enumerate before reading code
@@ -132,11 +136,11 @@ Status: VERIFIED | GAPS | BLOCKED
 - <ID — why, and what would verify it | None>
 ```
 
-`Status` rules: `VERIFIED` only if every row is `met` (or `deferred` under `Tests deferred`). Any `partial`, `not met` or `not verifiable` row makes it `GAPS` (`not verifiable` rows are flagged, so a human must decide). `BLOCKED` when the input gate fails.
+`Status` rules: `VERIFIED` only if every row is `met` (or `deferred` under `Tests deferred`, or `carried` in scoped mode). Any `partial`, `not met` or `not verifiable` row makes it `GAPS` (`not verifiable` rows are flagged, so a human must decide). `BLOCKED` when the input gate fails.
 
 ## Style rules
 
-- **Every ID gets a row in the Traceability matrix** — the count never shrinks. The only exception is `deferred` test rows under `Tests deferred`, which are summarised in one Summary line (Step 0). `met` rows stay one line (`path:line`, or the command and its counts). The criterion text and quotes for `met` rows live in your working notes and in the Step 4 self-check, not in the report.
+- **Every ID gets a row in the Traceability matrix** — the count never shrinks. The only exceptions are `deferred` test rows under `Tests deferred` and `carried` rows in scoped mode, each summarised in one Summary line (Step 0). `met` rows stay one line (`path:line`, or the command and its counts). The criterion text and quotes for `met` rows live in your working notes and in the Step 4 self-check, not in the report.
 - Every `partial`, `not met` and `not verifiable` row is repeated in full under `## Gaps` with the verbatim criterion, evidence quote and gap note.
 
 - Quote the plan criterion verbatim in `## Gaps`. One matrix row per ID.

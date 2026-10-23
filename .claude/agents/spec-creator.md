@@ -252,6 +252,7 @@ Re-read the spec you are about to write and fix it until every item holds. Repor
 - [ ] No implementation: no file lists, layers, tables, function or library names (only `path:line` anchors to current behaviour).
 - [ ] Every claim about current behaviour or a design has a source; the rest is in `## Open questions`.
 - [ ] Every AC has exactly one `## Traceability` row with a source and a behaviour-only verification hint that fits its `verify` level.
+- [ ] Every Traceability hint uses the same numbers, units and scope as its AC sentence (no stricter, looser or differently scoped limit, e.g. "document text ≤ 8,000" in the AC vs "block ≤ 8,000" in the hint).
 - [ ] The reverse list covers every Edge case, Untrusted input, Module interaction and NFR.
 - [ ] Every NFR category is filled with a number / EARS form or `n/a — reason`; testable ones point to an AC.
 - [ ] INSIGHTS were read only for the touched packages, and each applied entry is listed under `INSIGHTS applied`.
