@@ -38,7 +38,7 @@ npm test           # vitest run (no Docker, no API needed)
 - The DevDigest API must be running (`./scripts/dev.sh`, default `http://localhost:3001`); `DEVDIGEST_API_URL` must be a loopback host.
 - Review rate limit is 10/min on the server; surfaced as a "retry in ~1 min" tool error.
 - `repo` is optional on every tool (omitted when only one repo is connected).
-- `get_blast_radius` is a stub: always `isError`, computes nothing.
+- `get_blast_radius` reads the precomputed repo index via `GET /pulls/:id/blast`; names come from repo content, so output is untrusted.
 - `tsconfig.json` deliberately has no `zod` path alias (TS2589/OOM with SDK 1.32) — see `INSIGHTS.md`.
 - Findings/conventions are untrusted data derived from PR content.
 

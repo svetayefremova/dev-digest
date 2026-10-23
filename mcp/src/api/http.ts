@@ -1,4 +1,4 @@
-import type { Agent, ConventionScan, PrMeta, Repo, ReviewRecord, RunSummary } from '@devdigest/shared';
+import type { Agent, BlastRadiusResponse, ConventionScan, PrMeta, Repo, ReviewRecord, RunSummary } from '@devdigest/shared';
 import type { ActiveRun, DevDigestApi, StartReviewResponse } from './types.js';
 import { ApiError, ApiUnreachableError } from './errors.js';
 
@@ -58,6 +58,10 @@ export class HttpDevDigestApi implements DevDigestApi {
 
   conventions(repoId: string): Promise<ConventionScan> {
     return this.request<ConventionScan>('GET', `/repos/${encodeURIComponent(repoId)}/conventions`);
+  }
+
+  blast(prId: string): Promise<BlastRadiusResponse> {
+    return this.request<BlastRadiusResponse>('GET', `/pulls/${encodeURIComponent(prId)}/blast`);
   }
 
   private async request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {

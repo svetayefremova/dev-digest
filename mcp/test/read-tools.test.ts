@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { handleGetBlastRadius } from '../src/tools/get-blast-radius.js';
 import { handleGetConventions } from '../src/tools/get-conventions.js';
 import { handleListAgents } from '../src/tools/list-agents.js';
 import { FakeApi, agent, repo } from './fake-api.js';
 import { makeDeps, textOf } from './helpers.js';
 
 describe('read-only tools', () => {
-  it('list_agents hides disabled and never leaks system_prompt; conventions and stub onward errors', async () => {
+  it('list_agents hides disabled and never leaks system_prompt; conventions onward errors', async () => {
     const api = new FakeApi();
     api.agents = [agent('Security Reviewer', 'a1'), agent('Old', 'a2', false)];
     const deps = makeDeps(api);
@@ -34,11 +33,5 @@ describe('read-only tools', () => {
     };
     const pend = await handleGetConventions(deps, { status: 'accepted', limit: 30, response_format: 'concise' });
     expect(textOf(pend)).toContain("status:'pending'");
-
-    api.calls.length = 0;
-    const stub = handleGetBlastRadius();
-    expect(stub.isError).toBe(true);
-    expect(textOf(stub)).toContain('NOT IMPLEMENTED');
-    expect(api.calls).toHaveLength(0);
   });
 });

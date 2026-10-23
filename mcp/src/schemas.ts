@@ -84,3 +84,20 @@ export const conventionsOutput = {
   shown: z.number(),
   pending: z.number().optional(),
 };
+
+export const blastOutput = {
+  repo: z.string(),
+  pr: z.number(),
+  changed_symbols: z.array(z.object({ name: z.string(), file: z.string(), kind: z.string() })),
+  downstream: z.array(
+    z.object({
+      symbol: z.string(),
+      callers: z.array(z.object({ name: z.string(), file: z.string(), line: z.number() })),
+      endpoints_affected: z.array(z.string()),
+      crons_affected: z.array(z.string()),
+    }),
+  ),
+  summary: z.string(),
+  degraded: z.boolean(),
+  reason: z.enum(['flag_off', 'index_failed', 'index_partial', 'repo_too_large', 'no_data', 'no_changed_files']).nullable(),
+};

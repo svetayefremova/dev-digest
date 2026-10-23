@@ -1,4 +1,4 @@
-import type { Agent, ConventionScan, PrMeta, Repo, ReviewRecord, RunSummary } from '@devdigest/shared';
+import type { Agent, BlastRadiusResponse, ConventionScan, PrMeta, Repo, ReviewRecord, RunSummary } from '@devdigest/shared';
 import type { ActiveRun, DevDigestApi, StartReviewResponse } from '../src/api/types.js';
 
 export class FakeApi implements DevDigestApi {
@@ -11,6 +11,8 @@ export class FakeApi implements DevDigestApi {
   onListRuns?: (prId: string, call: number) => void;
   reviews: Record<string, ReviewRecord[]> = {};
   scan: ConventionScan = { repo_id: 'r1', sample_files: 0, scanned_at: null, candidates: [] };
+  blasts: Record<string, BlastRadiusResponse> = {};
+  blastPrIds: string[] = [];
   startError?: Error;
   startResponse?: StartReviewResponse;
   calls: string[] = [];
@@ -56,6 +58,11 @@ export class FakeApi implements DevDigestApi {
   async conventions(_repoId: string) {
     this.rec('conventions');
     return this.scan;
+  }
+  async blast(prId: string) {
+    this.rec('blast');
+    this.blastPrIds.push(prId);
+    return this.blasts[prId] ?? { changed_symbols: [], downstream: [], summary: '0 symbols', degraded: false, reason: null };
   }
 }
 

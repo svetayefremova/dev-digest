@@ -1,4 +1,5 @@
 {
+  "title": "Blast radius",
   "stat": {
     "symbols": "symbols",
     "callers": "callers",
@@ -9,10 +10,33 @@
     "tree": "tree",
     "graph": "graph"
   },
+  "headerSummary": "{callers} callers · {endpoints} endpoints",
   "callerCount": "{count} callers",
   "noDownstream": "{count} changed symbol(s), no downstream callers found.",
+  "noSymbols": "No indexed symbols in the changed files.",
+  "loading": "Loading blast radius…",
+  "error": "Couldn't load the blast radius.",
+  "endpointChip": "Endpoint affected: {name}",
+  "cronChip": "Cron/job affected: {name}",
+  "degraded": {
+    "no_changed_files": "Changed files for this PR aren't loaded yet — reopen the PR to sync them from GitHub.",
+    "no_data": "Repository index has no data for this repo — results come from a text search and may be incomplete.",
+    "index_partial": "Repository index is incomplete — callers may be missing.",
+    "index_failed": "Repository indexing failed — callers may be missing.",
+    "flag_off": "Repository intelligence is turned off — callers may be missing.",
+    "repo_too_large": "Repository is too large to index fully — callers may be missing."
+  },
+  "action": {
+    "resync": "Rebuild index",
+    "resyncing": "Rebuilding…"
+  },
   "graph": {
     "empty": "No downstream callers to graph.",
-    "ariaLabel": "Blast radius graph"
+    "ariaLabel": "Blast radius graph",
+    "legend": {
+      "symbol": "changed symbol",
+      "callers": "callers",
+      "endpoints": "endpoints affected"
+    }
   }
 }
