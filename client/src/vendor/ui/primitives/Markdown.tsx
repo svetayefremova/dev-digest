@@ -3,12 +3,20 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 /** Markdown renderer (replaces prototype mdLite). Inline + GFM. */
-export function Markdown({ children }: { children?: string | null }) {
+export function Markdown({
+  children,
+  skipHtml,
+}: {
+  children?: string | null;
+  /** Drop raw HTML nodes instead of rendering them (forwarded to react-markdown). */
+  skipHtml?: boolean;
+}) {
   if (!children) return null;
   return (
     <div className="dd-md" style={{ fontSize: "inherit", lineHeight: 1.55 }}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        skipHtml={skipHtml}
         components={{
           p: ({ children }) => <p style={{ margin: "0 0 10px" }}>{children}</p>,
           strong: ({ children }) => (

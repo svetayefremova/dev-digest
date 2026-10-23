@@ -43,9 +43,11 @@ export function SkillsTab({ agent }: { agent: Agent }) {
   const toggle = (id: string, enabled: boolean) =>
     save(rows.map((row) => (row.skill.id === id ? { ...row, enabled } : row)));
 
-  // Keyboard reordering on the drag handle: swap with the visible neighbour.
+  // Keyboard reordering on the drag handle: swap with the visible enabled
+  // neighbour. Disabled rows have no handle and are never a reorder target.
   const nudge = (id: string, delta: -1 | 1) => {
-    const neighbour = visible[visible.findIndex((row) => row.skill.id === id) + delta];
+    const movable = visible.filter((row) => row.enabled);
+    const neighbour = movable[movable.findIndex((row) => row.skill.id === id) + delta];
     if (neighbour) save(moveRow(rows, id, neighbour.skill.id));
   };
 
@@ -109,37 +111,43 @@ export function SkillsTab({ agent }: { agent: Agent }) {
         {visible.map(({ skill, enabled }) => (
           <li
             key={skill.id}
-            draggable
+            draggable={enabled}
             onDragStart={(e) => {
               e.dataTransfer.effectAllowed = "move";
               setDragId(skill.id);
             }}
             onDragOver={(e) => {
-              if (!dragId) return;
+              if (!dragId || !enabled) return;
               e.preventDefault();
               setOverId(skill.id);
             }}
             onDrop={(e) => {
               e.preventDefault();
-              if (dragId) save(moveRow(rows, dragId, skill.id));
+              if (dragId && enabled) save(moveRow(rows, dragId, skill.id));
               endDrag();
             }}
             onDragEnd={endDrag}
             style={s.row(enabled, dragId === skill.id, overId === skill.id && dragId !== skill.id)}
           >
-            <button
-              type="button"
-              aria-label={t("skills.dragHandle", { name: skill.name })}
-              title={t("skills.dragHandle", { name: skill.name })}
-              onKeyDown={(e) => {
-                if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
-                e.preventDefault();
-                nudge(skill.id, e.key === "ArrowUp" ? -1 : 1);
-              }}
-              style={s.handle}
-            >
-              <Icon.Menu size={14} />
-            </button>
+            {enabled ? (
+              <button
+                type="button"
+                aria-label={t("skills.dragHandle", { name: skill.name })}
+                title={t("skills.dragHandle", { name: skill.name })}
+                onKeyDown={(e) => {
+                  if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+                  e.preventDefault();
+                  nudge(skill.id, e.key === "ArrowUp" ? -1 : 1);
+                }}
+                style={s.handle}
+              >
+                <Icon.Menu size={14} />
+              </button>
+            ) : (
+              <span aria-hidden="true" style={s.handleDisabled}>
+                <Icon.Menu size={14} />
+              </span>
+            )}
             <Checkbox
               checked={enabled}
               onChange={(v) => toggle(skill.id, v)}

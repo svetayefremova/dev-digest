@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# PreToolUse(Bash) guard for the read-only subagents (spec: docs/agent-specs/read-only-bash-guard.md).
+# PreToolUse(Bash) guard for the read-only subagents.
 # Wired in the frontmatter of:
-#   - architecture-reviewer.md, researcher.md  → --profile readonly
-#   - plan-verifier.md                         → --profile verifier
+#   - architecture-reviewer.md, researcher.md, spec-creator.md  → --profile readonly
+#   - plan-verifier.md, test-writer.md         → --profile verifier
 #
 # Allowlist, fails CLOSED (exit 2). The command is scanned quote-aware and split into segments on
 # `&&`, `||`, `;`, `|` and newlines; every segment must pass.
@@ -19,7 +19,22 @@
 #   npm test … | npm run test … | npm run typecheck … | npm run build …
 #   npx vitest run …        (never -u / --update / --outputFile / --watch / -w)
 #   docker info             (no args)
+#   scripts/check.sh …      (./scripts/check.sh too; never -u / --update / --outputFile / --watch / -w)
 # Everything else is denied by omission (rm, mv, cp, tee, sed, awk, node, curl, gh, installs, db:* …).
+#
+# Regression checks — run after any allowlist change, piped JSON per case:
+#   printf '{"tool_input":{"command":"<cmd>"}}' | .claude/hooks/readonly-bash-guard.sh --profile <p>; echo $?
+# Both profiles, denied (exit 2):
+#   echo x > /tmp/x · rm -f README.md · git checkout -b x · git diff --output=/tmp/d
+#   git -c core.pager=sh log · find . -name x -delete · cat a 2>/dev/null >b · ls $(echo .) · cat <<EOF · ""
+# Both profiles, allowed (exit 0):
+#   git diff --stat · ls · git status 2>&1 · ls >/dev/null · git log --oneline -5 | head -3
+#   git grep -n "a\|b" -- .claude/agents | wc -l
+# readonly: npm test → denied ("not allowed in profile readonly")
+# verifier: cd reviewer-core && npm test · cd server && npx vitest run --exclude '**/*.it.test.ts' · docker info → allowed
+#   scripts/check.sh server --unit · ./scripts/check.sh mcp --related mcp/src/x.ts → allowed
+#   npm install · npm run db:migrate · npx vitest run -u · npm test -- --outputFile=x.json · npx drizzle-kit generate → denied
+# No --profile / --profile foo → every command denied (fail closed).
 
 # No `set -u`: macOS bash 3.2 treats "${empty_array[@]}" as unbound, which would abort with exit 1
 # (a non-blocking hook error, i.e. fail OPEN). Every exit path below is explicit.
@@ -257,6 +272,9 @@ check_segment() {
       [ "$PROFILE" = "verifier" ] || deny "npx is not allowed in profile $PROFILE"
       [ "${args[0]:-}" = "vitest" ] && [ "${args[1]:-}" = "run" ] || deny "only 'npx vitest run …' is allowed"
       check_test_flags "${args[@]:2}" ;;
+    scripts/check.sh|./scripts/check.sh)
+      [ "$PROFILE" = "verifier" ] || deny "scripts/check.sh is not allowed in profile $PROFILE"
+      check_test_flags "${args[@]}" ;;
     docker)
       [ "$PROFILE" = "verifier" ] || deny "docker is not allowed in profile $PROFILE"
       [ "${#args[@]}" -eq 1 ] && [ "${args[0]}" = "info" ] || deny "only 'docker info' is allowed" ;;

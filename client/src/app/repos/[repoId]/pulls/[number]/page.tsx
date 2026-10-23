@@ -7,6 +7,7 @@
 
 import React from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Skeleton, ErrorState } from "@devdigest/ui";
 import { AppShell } from "../../../../../components/app-shell";
 import { RepoNotFound } from "@/components/repo-not-found";
@@ -27,6 +28,7 @@ import { s } from "./styles";
 /* useSearchParams() opts this route out of static rendering unless wrapped in
    its own Suspense boundary (Next.js requirement) — see the default export below. */
 function PRDetailPageInner() {
+  const t = useTranslations("prReview");
   const params = useParams<{ repoId: string; number: string }>();
   const search = useSearchParams();
   const router = useRouter();
@@ -79,13 +81,12 @@ function PRDetailPageInner() {
   const lethalTrifecta = allFindings.filter((f) => f.kind === "lethal_trifecta");
   const findingsCount = allFindings.length;
 
-  const repoName = activeRepo?.full_name ?? repoId;
   // The real "owner/repo" (null until the repo is loaded) — used to build
   // github.com deep-links for the header and finding file references.
   const repoFullName = activeRepo?.full_name ?? null;
   const crumb = [
-    { label: repoName, mono: true, href: `/repos/${repoId}/pulls` },
-    { label: "Pull Requests", href: `/repos/${repoId}/pulls` },
+    { label: t("list.crumbWorkspace") },
+    { label: t("list.breadcrumb"), href: `/repos/${repoId}/pulls` },
     { label: `#${number}`, mono: true },
   ];
 

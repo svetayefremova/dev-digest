@@ -41,14 +41,29 @@ export function TraceBody({ trace, findings }: { trace: RunTrace; findings: Find
               {trace.specs_read.length === 0 ? (
                 <span style={s.specsNone}>{t("trace.config.none")}</span>
               ) : (
-                trace.specs_read.map((sp) => (
-                  <span key={sp} className="mono" style={s.spec}>
-                    {sp}
-                  </span>
-                ))
+                trace.specs_read.map((sp) => {
+                  const tokens = trace.specs_read_detail?.find((d) => d.path === sp)?.tokens;
+                  return (
+                    <span key={sp} style={s.specRow}>
+                      <span className="mono" style={s.spec}>
+                        {sp}
+                      </span>
+                      {tokens != null && <span style={s.specTokens}>{t("trace.config.specTokens", { count: tokens })}</span>}
+                    </span>
+                  );
+                })
               )}
             </div>
           </Row>
+          {trace.context_warnings != null && trace.context_warnings.length > 0 && (
+            <Row label={t("trace.config.contextWarnings")}>
+              <ul style={s.warnings}>
+                {trace.context_warnings.map((w, i) => (
+                  <li key={`${i}-${w}`}>{w}</li>
+                ))}
+              </ul>
+            </Row>
+          )}
         </div>
       </TraceSection>
 
@@ -88,7 +103,12 @@ export function TraceBody({ trace, findings }: { trace: RunTrace; findings: Find
           <PromptBlock label={t("trace.prompt.repoMap")} text={trace.prompt_assembly.repo_map} color={PROMPT_COLORS.repoMap} />
         )}
         {trace.prompt_assembly.specs != null && (
-          <PromptBlock label={t("trace.prompt.specs")} text={trace.prompt_assembly.specs} color={PROMPT_COLORS.specs} />
+          <PromptBlock
+            label={t("trace.prompt.specs")}
+            text={trace.prompt_assembly.specs}
+            color={PROMPT_COLORS.specs}
+            tokens={trace.prompt_assembly.specs_tokens}
+          />
         )}
         {trace.prompt_assembly.callers != null && (
           <PromptBlock label={t("trace.prompt.callers")} text={trace.prompt_assembly.callers} color={PROMPT_COLORS.callers} />

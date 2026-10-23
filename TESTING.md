@@ -79,6 +79,16 @@ npm i -g agent-browser && agent-browser install
 cd e2e && npm install && npm test
 ```
 
+**Compact checks (agents use these).** `scripts/check.sh` wraps typecheck + vitest
+for `client`, `server`, `reviewer-core` and `mcp` and prints one summary line per
+check, plus only the first failing lines:
+
+```sh
+scripts/check.sh server                       # typecheck + unit (excludes *.it.test.ts)
+scripts/check.sh server --it --no-typecheck   # integration; "skipped" when Docker is down
+scripts/check.sh client --related client/src/lib/api.ts   # only tests vitest maps to these files
+```
+
 ## Conventions
 
 - **Integration tests end in `*.it.test.ts`.** The unit lane excludes that glob

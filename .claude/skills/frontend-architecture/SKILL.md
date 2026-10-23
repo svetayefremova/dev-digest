@@ -1,8 +1,6 @@
 ---
 name: frontend-architecture
 description: "Frontend code organization and architecture for React + Next.js App Router: where components, constants, utils/helpers, hooks, and business logic should live, and how to split a growing component or folder. Use whenever deciding where new frontend code should go, when a component/folder/file is getting too big, when reviewing a PR for logic placed in the wrong layer (a component doing data-fetching, a util secretly containing business rules, a global constants dump), or when setting up a new feature or route under app/. Complements react-best-practices (component-level correctness and anti-patterns) and next-best-practices (Next.js routing mechanics) — this skill owns organization and layering, not those two."
-metadata:
-  version: "0.1.0"
 ---
 
 # Frontend Architecture (React + Next.js)

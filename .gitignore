@@ -19,8 +19,12 @@ coverage/
 .devdigest/cache/
 clones/
 .claude/pr-review-history/
+.claude/sdd-runs/
 playwright-report/
 test-results/
 
 # emdash worktree config (local)
 .emdash.json
+
+# file(1) compiled magic database (stray output of `file -C`)
+*.mgc

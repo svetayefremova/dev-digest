@@ -9,6 +9,7 @@
 #   - server/src/**/*.test.ts
 #   - reviewer-core/test/**/*.ts
 #   - reviewer-core/src/**/*.test.ts
+#   - mcp/test/**/*.ts                    (mcp/vitest.config.ts: test/**/*.test.ts + helpers such as fake-api.ts)
 #
 # Deliberately excluded: e2e/ (flows are JSON fixtures, out of this agent's scope), package.json,
 # vitest configs, vendored code, *.d.ts and all production .ts/.tsx (denied by omission).
@@ -60,7 +61,8 @@ if [[ "$REL" =~ ^client/src/.+\.test\.tsx?$ ]] \
   || [[ "$REL" =~ ^server/test/.+\.ts$ ]] \
   || [[ "$REL" =~ ^server/src/.+\.test\.ts$ ]] \
   || [[ "$REL" =~ ^reviewer-core/test/.+\.ts$ ]] \
-  || [[ "$REL" =~ ^reviewer-core/src/.+\.test\.ts$ ]]; then
+  || [[ "$REL" =~ ^reviewer-core/src/.+\.test\.ts$ ]] \
+  || [[ "$REL" =~ ^mcp/test/.+\.ts$ ]]; then
   exit 0
 fi
 

@@ -1,14 +1,16 @@
 # docs/plans
 
-Development Plans written by the `planner` agent (`.claude/agents/planner.md`) and executed by the `implementer` agent (`.claude/agents/implementer.md`).
+Implementation Plans written by the `implementation-planner` agent (`.claude/agents/implementation-planner.md`) and executed by the `implementer` agent (`.claude/agents/implementer.md`).
 
-- One file per change, named per [Naming](#naming). The template lives in `planner.md`.
-- Lifecycle: `Status: draft` (planner may still rewrite it) → `approved` (set by a human; frozen, since the planner's write guard refuses non-draft files) → `done`.
-- The planner can write only here and in [`docs/agent-specs/`](../agent-specs/README.md) (`.claude/hooks/planner-write-guard.sh`). This README is human-maintained.
+- One file per change, named per [Naming](#naming). The template lives in `implementation-planner.md`.
+- Lifecycle: `Status: draft` (the planner may still rewrite it) → `approved` (set by a human; frozen, since the planner's write guard refuses non-draft files) → `done`.
+- The implementation-planner can write only here (`.claude/hooks/implementation-planner-write-guard.sh`). This README is human-maintained.
+- Every plan records its `Execution mode`: `single-agent` (one `implementer`, linear pass) or `multi-agent` (an `## Execution` table of workstreams with non-overlapping `Owns files` forming a DAG; `W0` with contracts/DB runs first, the rest in parallel, verification once on the combined diff). Every plan also has a `## Tests` table (`T#` rows, written by `test-writer`, never the implementer) and one `TW-<pkg>` test workstream per package with tests.
+- Every plan records `Requirements (verified)` as checkable `RQ` items (unconfirmed ones marked `assumed default — confirm`) and `Open questions & recommendations` (non-blocking spec issues, technical decisions and which recommendations were accepted). Requirements come from an approved spec; the planner never re-clarifies them. Every step lists the spec ACs it implements (`ACs: SPEC-NN/AC-k`, or `—` with a reason) and the `RQ` items it `Covers`.
 - Skill tags in plan steps come from the routing table in `.claude/skills/README.md`.
 - `plan-verifier` reads the plan and checks every item; keep criteria checkable.
 
-Flow: `researcher` (optional, any time) → `planner` → human sets the plan to `Status: approved` → `implementer <plan path>` → `test-writer` (optional, when tests are missing) → `plan-verifier <plan path>` + `architecture-reviewer` (+ security reviewer, planned, not in this folder yet) → `doc-writer` → `/pr-self-review` → PR.
+Flow: `researcher` (optional, any time) → `implementation-planner` round 1 (verified requirements, questions, recommendations, execution mode; no file) → user answers → `implementation-planner` round 2 (writes the plan) → human sets the plan to `Status: approved` → `implementer <plan path>` (multi-agent: one per `W*` workstream, `W0` first; production code only) → check gate (`scripts/check.sh` per touched package) → `test-writer <plan path> package <pkg>` per `TW-*` row → `plan-verifier <plan path>` ∥ `architecture-reviewer` ∥ `/code-review` ∥ `/security-review` → fix loop (`implementer fix: <plan path>` + findings) → `doc-writer` → `/pr-self-review` → PR.
 
 ## Naming
 

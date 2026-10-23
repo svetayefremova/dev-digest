@@ -36,6 +36,9 @@ const EnvSchema = z.object({
   // tiktoken counts — still never section content). Honored ONLY when
   // NODE_ENV=development; ignored (with a boot warning) anywhere else.
   PROMPT_LOG_VERBOSE: z.string().optional(),
+  // Project Context: comma-separated globs (repo-relative, posix) of Markdown
+  // files the document reader lists. Empty/invalid → built-in default.
+  CONTEXT_SEARCH_GLOBS: z.string().optional(),
   LOG_LEVEL: z.preprocess(
     (v) => (v === '' ? undefined : v),
     z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).optional(),
@@ -67,7 +70,34 @@ export type AppConfig = {
   promptLogVerbose: boolean;
   /** PROMPT_LOG_VERBOSE=true was set outside development and ignored (boot warns). */
   promptLogVerboseIgnored: boolean;
+  /** Globs the Project Context reader searches; always non-empty. */
+  contextSearchGlobs: string[];
 };
+
+/** Default Project Context search: specs/docs/insights folders at any depth. */
+export const DEFAULT_CONTEXT_SEARCH_GLOBS: readonly string[] = ['**/{specs,docs,insights}/**/*.md'];
+
+/** Comma-separated globs (commas inside `{}` kept); invalid or empty → the default. */
+export function parseSearchGlobs(raw: string | undefined): string[] {
+  if (!raw || !raw.trim()) return [...DEFAULT_CONTEXT_SEARCH_GLOBS];
+  const globs: string[] = [];
+  let depth = 0;
+  let cur = '';
+  for (const ch of raw) {
+    if (ch === '{') depth++;
+    else if (ch === '}') depth = Math.max(0, depth - 1);
+    if (ch === ',' && depth === 0) {
+      globs.push(cur);
+      cur = '';
+    } else cur += ch;
+  }
+  globs.push(cur);
+  const cleaned = globs.map((g) => g.trim()).filter(Boolean);
+  const valid =
+    cleaned.length > 0 &&
+    cleaned.every((g) => !g.startsWith('/') && !g.includes('\0') && !g.split('/').includes('..') && depth === 0);
+  return valid ? cleaned : [...DEFAULT_CONTEXT_SEARCH_GLOBS];
+}
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const parsed = EnvSchema.parse(env);
@@ -88,5 +118,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     repoIntelEnabled: parsed.REPO_INTEL_ENABLED !== 'false',
     promptLogVerbose: verboseRequested && parsed.NODE_ENV === 'development',
     promptLogVerboseIgnored: verboseRequested && parsed.NODE_ENV !== 'development',
+    contextSearchGlobs: parseSearchGlobs(parsed.CONTEXT_SEARCH_GLOBS),
   };
 }

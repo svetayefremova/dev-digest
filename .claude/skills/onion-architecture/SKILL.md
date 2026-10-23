@@ -1,8 +1,6 @@
 ---
 name: onion-architecture
 description: "Enforces Onion/Ports-and-Adapters layering for the backend packages server/ (@devdigest/api — Fastify + Drizzle/Postgres) and reviewer-core/ (@devdigest/reviewer-core — pure review engine): which layer a piece of code belongs in, the dependency rule between routes/service/repository/adapters, and how the DI container (platform/container.ts) wires concrete adapters behind port interfaces. Use when deciding where new backend logic goes, when a route handler is doing too much (touching Drizzle or an adapter directly), when adding a new modules/<name>/ feature or a new external integration/adapter, when reviewing a PR for layering violations, or when reviewer-core is being consumed from server/. Complements fastify-best-practices (route/plugin/schema mechanics) and drizzle-orm-patterns (query/schema mechanics) — this skill owns cross-layer dependency direction and composition-root wiring, not the mechanics inside a layer."
-metadata:
-  version: "0.1.0"
 ---
 
 # Onion Architecture (backend: `server/`, `reviewer-core/`)
@@ -98,7 +96,7 @@ duplicate what `Container` already does.
 
 ## 4. `reviewer-core` as the gold-standard pure core
 
-`server/src/modules/reviews/run-executor.ts:187-213` is the real consumption
+the `reviewPullRequest` call in `server/src/modules/reviews/run-executor.ts` is the real consumption
 boundary and the template to copy for any similar integration:
 
 > "The pure review pipeline lives in @devdigest/reviewer-core (shared with the CI runner). The service owns only I/O: repo-intel context resolution above, and persistence + observability below."
@@ -175,7 +173,7 @@ engine itself touches nothing external.
 | How thin should `routes.ts` be? | Validate → one service call → shape HTTP response. Nothing else |
 | Where does a new adapter's interface go? | `vendor/shared/adapters.ts`, implementation in `adapters/<name>/`, wired via a `Container` getter |
 | Should we add awilix/tsyringe/inversify? | No — `Container` already is this repo's DI mechanism |
-| Where does `reviewer-core` get called from? | The service layer only (see `reviews/run-executor.ts:187-213`), never `routes.ts` |
+| Where does `reviewer-core` get called from? | The service layer only (see the `reviewPullRequest` call in `reviews/run-executor.ts`), never `routes.ts` |
 | Is a module reaching another module's repo OK? | No — go through the container's shared getter (`agentsRepo`, `reviewRepo`) |
 
 See `examples.md` for good/bad code pairs and `README.md` for the full

@@ -71,6 +71,7 @@
     "tabs": {
       "config": "Config",
       "preview": "Preview",
+      "context": "Context",
       "versions": "Versions",
       "stats": "Stats"
     }

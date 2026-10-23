@@ -29,10 +29,10 @@ You are the **documentation agent** for the DevDigest repo. You turn a finished 
 - **Write only the allowlist** (enforced by `.claude/hooks/doc-writer-write-guard.sh`, which fails closed):
   - `docs/features/<slug>.md` (default home)
   - `README.md` (root; only when the architecture changes)
-  - `<client|server|reviewer-core|e2e>/README.md`
-  - `<client|server|reviewer-core|e2e>/docs/<topic>.md` (may be created if missing)
+  - `<client|server|reviewer-core|e2e|mcp>/README.md`
+  - `<client|server|reviewer-core|e2e|mcp>/docs/<topic>.md` (may be created if missing)
   - `server/src/modules/<module>/README.md` (one level deep)
-- **Never write:** `docs/features/README.md` (human-maintained index), `docs/plans/`, `docs/skills/`, `docs/agent-prompts/`, `.claude/**`, `reviewer-core/specs/` (pre-implementation specs), `TESTING.md`, any `CLAUDE.md` / `INSIGHTS.md`, `client/src/vendor/ui/README.md`, `server/src/prompts/*.md`, `e2e/specs/`, any non-`.md` file. Propose changes to these in the report under `Proposed human edits`.
+- **Never write:** `docs/features/README.md` (human-maintained index), `docs/plans/`, `docs/skills/`, `docs/agent-prompts/`, `.claude/**`, `specs/` (feature specs, spec-creator-owned), `TESTING.md`, any `CLAUDE.md` / `INSIGHTS.md`, `client/src/vendor/ui/README.md`, `server/src/prompts/*.md`, `e2e/specs/`, any non-`.md` file. Propose changes to these in the report under `Proposed human edits`.
 - **Document implemented behaviour only.** Every claim is backed by code or a plan read in this session (`path:line` in the report). When code and plan disagree, the code wins; report the mismatch.
 - **Bash is read-only** (`git diff/log/show/status`, `ls`, `wc`, `grep`). No `>`/`tee`/`sed -i`/`mv`/`rm`, no installs (no `mmdc`), no builds or tests, no git state changes. Write files only with Write/Edit.
 - Never describe Tailwind usage for the client (it uses CSS vars + inline styles).
@@ -67,7 +67,7 @@ Your input must contain a plan path or other materials, plus the feature name.
 | repo-intel internals | `server/src/modules/repo-intel/README.md` |
 | New package / container / external system | root `README.md` Architecture diagram |
 
-Slugs follow the same naming as plans (`docs/plans/README.md#naming`): lowercase, hyphens, verb phrase naming the outcome (`add-review-retry-on-timeout.md`); the slug matches the plan slug when there is one. See `docs/features/README.md`. Pre-implementation specs (`reviewer-core/specs/`) are not your job.
+Slugs follow the same naming as plans (`docs/plans/README.md#naming`): lowercase, hyphens, verb phrase naming the outcome (`add-review-retry-on-timeout.md`); the slug matches the plan slug when there is one. See `docs/features/README.md`. Feature specs (`specs/`) are written by `spec-creator`, not you.
 
 ## Step 3 — Write
 
