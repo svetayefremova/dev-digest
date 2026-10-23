@@ -1,0 +1,46 @@
+import type { CSSProperties } from "react";
+
+export const s = {
+  list: { listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 6 } satisfies CSSProperties,
+  row: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "8px 12px",
+    borderRadius: 6,
+    background: "var(--bg-elevated)",
+    minWidth: 0,
+  } satisfies CSSProperties,
+  rank: { fontSize: 12, color: "var(--text-muted)", width: 18, flexShrink: 0 } satisfies CSSProperties,
+  text: { flex: 1, minWidth: 0, fontSize: 13, color: "var(--text-secondary)" } satisfies CSSProperties,
+  path: {
+    color: "var(--text-primary)",
+    display: "inline-block",
+    maxWidth: "100%",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    verticalAlign: "bottom",
+  } satisfies CSSProperties,
+  fact: { color: "var(--text-muted)", fontSize: 12 } satisfies CSSProperties,
+  open: {
+    flexShrink: 0,
+    padding: "3px 10px",
+    fontSize: 12,
+    borderRadius: 5,
+    border: "1px solid var(--border-strong)",
+    color: "var(--text-primary)",
+    textDecoration: "none",
+  } satisfies CSSProperties,
+  toggle: {
+    marginTop: 8,
+    background: "transparent",
+    border: "none",
+    color: "var(--accent-text)",
+    fontSize: 13,
+    cursor: "pointer",
+    padding: 0,
+  } satisfies CSSProperties,
+  note: { marginTop: 8, fontSize: 12, color: "var(--text-muted)" } satisfies CSSProperties,
+  empty: { fontSize: 13, color: "var(--text-muted)" } satisfies CSSProperties,
+};

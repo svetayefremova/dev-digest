@@ -1,17 +1,75 @@
 {
   "title": "Onboarding Tour",
-  "sections": "Sections",
-  "sectionCount": "{count} sections",
-  "regenerate": "Regenerate",
-  "regenerating": "Regenerating…",
-  "unknownError": "Unknown error",
-  "generate": {
-    "title": "Generate onboarding tour",
-    "body": "DevDigest indexes the repo and specs, then writes a 5-section guided tour: overview, architecture, key modules, getting started, and conventions & gotchas.",
-    "cta": "Generate onboarding tour",
-    "generating": "Generating…"
+  "crumbWorkspace": "Workspace",
+  "heading": "Onboarding for <repo>{repoName}</repo>",
+  "selectRepo": "Select a repository",
+  "subline": "Generated from index of {n} files · last refreshed {time}",
+  "sublinePartial": "Generated from index of {n} of {m} files · last refreshed {time}",
+  "sublineSkeleton": "Generated from index of {n} files",
+  "sublineSkeletonPartial": "Generated from index of {n} of {m} files",
+  "partialNotice": "Partial index: sections cover indexed files only.",
+  "onThisPage": "On this page",
+  "sections": {
+    "architecture": "Architecture overview",
+    "critical_paths": "Critical paths",
+    "run_locally": "How to run locally",
+    "reading_path": "Guided reading path",
+    "first_tasks": "First tasks"
   },
-  "loadError": {
-    "title": "Couldn’t load the onboarding tour"
+  "empty": {
+    "title": "Generate onboarding tour",
+    "body": "DevDigest indexes the repo and writes a guided tour: architecture, critical paths, how to run, a reading order, and first tasks. Takes 30–60s and ~5,000 tokens.",
+    "cta": "Generate onboarding tour"
+  },
+  "regenerate": "Regenerate",
+  "retry": "Retry",
+  "reanalyze": "Re-analyze",
+  "elapsed": "Generating… {seconds}s",
+  "stale": "The index changed since this tour was generated",
+  "reasons": {
+    "flag_off": "Repository index is turned off",
+    "ai_output_invalid": "AI output invalid",
+    "ai_unavailable": "AI summary unavailable",
+    "index_failed": "Repository index failed",
+    "no_data": "No index data yet",
+    "no_supported_files": "No supported source files indexed",
+    "interrupted": "The previous generation was interrupted"
+  },
+  "failedRegeneration": "Regeneration failed: {reason}. Showing the previous tour.",
+  "notCloned": "Repository not cloned yet",
+  "indexing": "Indexing in progress",
+  "noSupportedFiles": "No supported source files indexed (.ts, .tsx, .js, .jsx, .mjs, .cjs)",
+  "noRunInstructions": "No run instructions found in this repo",
+  "firstTasksPending": "Available once the AI summary is generated",
+  "stack": "Stack",
+  "directories": "Top-level directories",
+  "envVars": "Environment variables",
+  "factImporters": "imported by {count} files",
+  "factEndpoints": "{count} endpoints",
+  "complexity": "{level} complexity",
+  "complexityLevel": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High"
+  },
+  "showAll": "Show all ({count})",
+  "showLess": "Show less",
+  "truncationNote": "Top 25 of {total} indexed files by import rank",
+  "open": "Open",
+  "copy": "Copy",
+  "copyCommand": "Copy command {command}",
+  "copied": "Copied",
+  "announce": {
+    "succeeded": "Onboarding tour generated",
+    "failed": "Onboarding tour generation failed"
+  },
+  "toggleSection": "Toggle {section}",
+  "loadError": "Couldn’t load the onboarding tour",
+  "errors": {
+    "cooldown": "Try again in {seconds}s",
+    "indexingInProgress": "Indexing is in progress. Try again when it finishes.",
+    "repoIntelDisabled": "Repository index is turned off",
+    "notCloned": "Repository not cloned yet",
+    "generic": "Could not start generation"
   }
 }
