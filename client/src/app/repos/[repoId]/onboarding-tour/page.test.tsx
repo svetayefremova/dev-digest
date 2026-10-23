@@ -519,6 +519,55 @@ describe("OnboardingTourPage sections", () => {
     expect(within(toc).getByRole("button", { name: "Architecture overview" })).not.toHaveAttribute("aria-current");
   });
 
+  it("SPEC-02 AC-9 / AC-50: after clicking a TOC item it is highlighted and the previous one is not, even when the previous section's tail is also reported; a later wheel scroll lets the in-view section drive again", async () => {
+    let callback: IntersectionObserverCallback = () => {};
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(cb: IntersectionObserverCallback) {
+          callback = cb;
+        }
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+    const deliver = (changes: Record<string, boolean>) =>
+      act(() => {
+        callback(
+          Object.entries(changes).map(
+            ([id, isIntersecting]) => ({ isIntersecting, target: document.getElementById(id) }) as unknown as IntersectionObserverEntry,
+          ),
+          {} as IntersectionObserver,
+        );
+      });
+    serve(state({ tour: tour() }));
+    renderPage();
+    await screen.findByText("Summary A");
+    const toc = within(screen.getByRole("navigation", { name: "On this page" }));
+    const item = (name: string) => toc.getByRole("button", { name });
+
+    fireEvent.click(item("How to run locally"));
+    expect(item("How to run locally")).toHaveAttribute("aria-current", "location");
+
+    // During/after the smooth scroll the observer reports the previous section's tail and the clicked one.
+    deliver({ critical_paths: true, run_locally: true });
+    expect(item("How to run locally")).toHaveAttribute("aria-current", "location");
+    expect(item("Critical paths")).not.toHaveAttribute("aria-current");
+
+    deliver({ critical_paths: false });
+    deliver({ first_tasks: true });
+    expect(item("How to run locally")).toHaveAttribute("aria-current", "location");
+    expect(item("First tasks")).not.toHaveAttribute("aria-current");
+
+    // The user scrolls by hand: the topmost in-view section drives the highlight again.
+    fireEvent.wheel(window);
+    expect(item("How to run locally")).toHaveAttribute("aria-current", "location");
+    deliver({ run_locally: false });
+    expect(item("First tasks")).toHaveAttribute("aria-current", "location");
+    expect(item("How to run locally")).not.toHaveAttribute("aria-current");
+  });
+
   it("SPEC-02 AC-50: activating a TOC item of a collapsed section expands it and scrolls that section into view", async () => {
     serve(state({ tour: tour() }));
     renderPage();
