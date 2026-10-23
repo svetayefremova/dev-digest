@@ -23,6 +23,10 @@ Append-only log of engineering insights captured in `server/`. Written by the `e
 
 - 2026-10-16 — Prompt observability without breaking reviewer-core purity: the core returns content-free `sections` metadata from `assemblePrompt` and hands it to the injected `ReviewInput.onPromptAssembled` callback; the server logs it via `platform/prompt-log.ts`, which builds the log object from an explicit allowlist (never spreads input). Section texts cross the boundary only when `promptDebug` is set (local verbose mode), and are used only for hashing/token counts. Keep new prompt sections registered via `push()` in `reviewer-core/src/prompt.ts` so they show up in the metadata.
 
+- 2026-10-17 — `pr_files` is read without `ORDER BY` (`modules/reviews/repository/pull.repo.ts:29` `getPrFiles`, `modules/pulls/repository.ts:157`), so "GitHub order" in the Files changed tab is really physical row order. It holds after a fresh `replacePrFiles` insert but not after deletes/re-inserts: the demo PR #482 came back in a different order than seeded after the seed backfill. Anything that promises the original order (Smart Diff "Original order") is only as stable as that; a real fix needs a stored position column.
+
+- 2026-10-17 — Demo PR #482 files live in `src/db/seed-demo-pr.ts` (9 files, real patches, every Smart Diff role incl. `package-lock.json`, seeded findings on rendered lines `src/config.ts:12` / `src/api/users.ts:45`). `npm run db:seed` backfills them into DBs seeded earlier (only when every row's `patch` is null). Use it for UI checks and demos instead of live LLM reviews or hand-inserted rows (`.claude/skills/run-app`).
+
 ## Tool & Library Notes
 
 <!-- - 2026-XX-XX — dependency quirk, version gotcha, config surprise (file:line) -->
@@ -36,6 +40,8 @@ Append-only log of engineering insights captured in `server/`. Written by the `e
 - 2026-10-06 — Same shared-dev-DB drift, column flavour: `db:generate` emitted `ADD COLUMN "message"` for `skill_versions`, but the local Postgres already had a nullable, default-less `message` column from another checkout (check with `\d <table>` BEFORE `db:migrate`). Fix used: hand-edit the generated SQL to `ADD COLUMN IF NOT EXISTS` + backfill NULLs + `SET DEFAULT` + `SET NOT NULL`, so it converges on both a fresh DB and the drifted one (`src/db/migrations/0015_flowery_firestar.sql`).
 
 - 2026-10-10 — `npm run db:generate` hangs with no output when a change both drops a column and adds one on the same table (drizzle-kit asks interactively "created or renamed?", and a piped/non-TTY run just waits). Hit when replacing `conventions.accepted` with `status`. Fix: generate in two steps — add the new columns first (`0016`), then remove the old one (`0017`) — with `npx drizzle-kit generate < /dev/null`.
+
+- 2026-10-17 — `test/reviews.it.test.ts` failed intermittently on `main` (2 of 7, e.g. "finding actions": `Cannot read properties of undefined (reading 'findings')`) → `waitForPrRuns(..., { expected: 1 })` was satisfied by the intent classifier's `agent_runs` row (`agent_id` NULL) finishing before the agent's review (see the 2026-10-16 entry above). Fixed in `test/helpers/runs.ts`: `expected` counts only runs with an `agentId`. Stable over 4 consecutive runs; full `.it.test` suite 55/55.
 
 ## Session Notes
 

@@ -20,6 +20,8 @@ Append-only log of engineering insights captured in `client/`. Written by the `e
 
 <!-- - 2026-XX-XX — dependency quirk, version gotcha, config surprise (file:line) -->
 
+- 2026-10-17 — `@testing-library/user-event` is not a client dependency, and agents may not install packages: RTL tests use `fireEvent` (`src/components/diff-viewer/DiffViewer/DiffViewer.test.tsx`). A plan that prescribes `userEvent.setup()` ends up as a PARTIAL in plan verification. Either plan `fireEvent`, or add the dependency in a separate, human-approved step.
+
 ## Recurring Errors & Fixes
 
 <!-- - 2026-XX-XX — error signature → root cause → fix (file:line) -->

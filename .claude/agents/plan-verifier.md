@@ -51,6 +51,7 @@ Read the whole plan first (and, when its header names a `Spec:`, that spec under
 | `G1..` | `## Goal` | each sentence |
 | `RQ1..` | `## Requirements (verified)` | each `RQ` item, keeping its ID from the plan; verified through the steps whose `Covers` names it. An item marked `assumed default — confirm` is still verified, and the mark is repeated in the row |
 | `NG1..` | `## Non-goals` | each bullet; verified as "not done" (the diff must not contain it) |
+| `AC1..` | `## Acceptance criteria` | each table row, keeping its ID and priority; verified against the code and checks, not against the "Delivered by" column. A `None given` section creates no rows |
 | `IA1..` | `## Context` → `INSIGHTS applied` | each bullet; verified by the diff honouring the stated consequence |
 | `CA1..` | `## Context` → `Constraints applied` | each bullet |
 | `S<n>.F<k>` | step `S<n>` → `Files` | each file line (create/modify, path, stated change); the file must exist or be modified as stated |
@@ -64,7 +65,7 @@ Read the whole plan first (and, when its header names a `Spec:`, that spec under
 | `DB1..` | `## Contracts & DB` → `DB` | each DB line (schema change, generated migration; no `db:migrate`) |
 | `V1..` | `## Verification` | each table row (one command per row) |
 | `AC1..` | the spec named in the plan header (`Spec: SPEC-NN (path)`) → `## Acceptance criteria (EARS)` | each `AC-k` not marked `(removed)`, keeping its number (`AC3` = `SPEC-NN/AC-3`) and its EARS text verbatim; `met` needs code `path:line` showing the response to the stated trigger/state, or a test that asserts that trigger → response. Behaviour only observable in a running app or with a live LLM (or `verify: manual`) → `not verifiable`. When no test exists at the AC's `verify:` level, keep the verdict and add `no <level> test` (rules: preloaded `ears-requirements`). Find tests by the `SPEC-NN AC-k:` name prefix that `test-writer` uses (`git grep -n "SPEC-NN AC-k:" -- '*.test.ts*'`), falling back to a bare `AC-k:` only for tests written before that prefix, and only when the file belongs to this feature. No `Spec:` (or `—`) → no AC rows |
-| `R1..` | extra requirements from the input | each requirement |
+| `R1..` | extra requirements from the input | each requirement that is not already an `AC` row (a duplicate gets no new row; note it under Summary) |
 
 `## Open questions & recommendations`, `## Skills per module`, `## Execution`, the steps' `Covers` lines, `## Out of scope / handed off` and `## Risks` are context, not criteria. An accepted recommendation is verified through the steps that implement it. For a multi-agent plan, verify the combined diff of all workstreams, never a single workstream. Read them to interpret items, but do not create rows for them unless an item refers to them. When a section says `none` / `None` (for example `Contracts: none`), still create the row and verify the diff contains no such change.
 
@@ -104,6 +105,7 @@ Status: VERIFIED | GAPS | BLOCKED
 ## Summary
 - Items: <N> · met <n> · partial <n> · not met <n> · not verifiable <n>
 - Plan status note: <draft/approved note | None>
+- Acceptance criteria: <P1 met n/N · P2 met n/N · P3 met n/N | None given>
 
 ## Traceability matrix
 | ID | Status | Evidence |

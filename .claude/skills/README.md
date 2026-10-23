@@ -22,6 +22,7 @@ Reusable AI skills that provide specialized knowledge and workflows. Canonical l
 | [engineering-insights](engineering-insights/SKILL.md) | Shared | Captures non-obvious discoveries into the touched module's `INSIGHTS.md`; also via `/engineering-insights` |
 | [run-plan](run-plan/SKILL.md) | Workflow | `/run-plan <plan>`: runs an approved plan through implementer → check gate → test-writer → architecture-review fix loop → plan-verifier + security-pass fix loop → doc-writer, then asks the user to run `/pr-self-review` (`--no-tests` defers tests) |
 | [workflow-retro](workflow-retro/SKILL.md) | Workflow | `/workflow-retro [--deep]` (manual only): retro on how a multi-agent run coordinated — timeline, tokens per phase, handoffs, rework → recommendations; base mode inline, `--deep` forks a transcript extractor; writes `docs/retro/ledger/YYYY-MM-DD-<slug>.md` |
+| [run-app](run-app/SKILL.md) | Workflow | Launch the studio and check a UI change in headless Chrome: targeted assertions, clipped screenshots, seeded demo PR #482 |
 | [pr-self-review](pr-self-review/SKILL.md) | Workflow | Maps the branch diff to relevant domain skills, normalizes severity, blocks `gh pr create`/`merge`/`push` on CRITICAL findings; also via `/pr-self-review` |
 
 ## Routing: change zone → skills
