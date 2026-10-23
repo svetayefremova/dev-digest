@@ -25,26 +25,110 @@ export const Conformance = z.object({
 });
 export type Conformance = z.infer<typeof Conformance>;
 
-// ---- Onboarding ----
-export const OnboardingLink = z.object({
-  label: z.string(),
+// ---- Onboarding tour ----
+export const OnboardingSectionKey = z.enum([
+  'architecture',
+  'critical_paths',
+  'run_locally',
+  'reading_path',
+  'first_tasks',
+]);
+export type OnboardingSectionKey = z.infer<typeof OnboardingSectionKey>;
+
+export const OnboardingReason = z.enum([
+  'flag_off',
+  'index_failed',
+  'no_data',
+  'no_supported_files',
+  'ai_output_invalid',
+  'ai_unavailable',
+  'interrupted',
+]);
+export type OnboardingReason = z.infer<typeof OnboardingReason>;
+
+export const OnboardingRankedEntry = z.object({
   path: z.string(),
+  rank: z.number(),
+  importers: z.number().int().min(0),
+  endpoints: z.number().int().min(0),
+  reason: z.string().nullable(),
 });
-export type OnboardingLink = z.infer<typeof OnboardingLink>;
+export type OnboardingRankedEntry = z.infer<typeof OnboardingRankedEntry>;
 
-export const OnboardingSection = z.object({
-  kind: z.string(),
+export const OnboardingRankedList = z.object({
+  entries: z.array(OnboardingRankedEntry).max(25),
+  truncated: z.boolean(),
+});
+export type OnboardingRankedList = z.infer<typeof OnboardingRankedList>;
+
+export const OnboardingCommand = z.object({
+  command: z.string(),
+  comment: z.string().nullable(),
+  source: z.enum(['package_script', 'compose', 'env_example']),
+});
+export type OnboardingCommand = z.infer<typeof OnboardingCommand>;
+
+export const OnboardingFirstTask = z.object({
   title: z.string(),
-  body: z.string(), // markdown
-  diagram: z.string().nullish(), // mermaid
-  links: z.array(OnboardingLink),
+  path: z.string(),
+  isDirectory: z.boolean(),
+  importers: z.number().int(),
+  complexity: z.enum(['low', 'medium', 'high']),
 });
-export type OnboardingSection = z.infer<typeof OnboardingSection>;
+export type OnboardingFirstTask = z.infer<typeof OnboardingFirstTask>;
 
-export const Onboarding = z.object({
-  sections: z.array(OnboardingSection),
+export const OnboardingTour = z.object({
+  mode: z.enum(['generated', 'skeleton']),
+  reason: OnboardingReason.nullable(),
+  architecture: z.object({
+    summary: z.string().nullable(),
+    diagram: z.string().nullable(), // mermaid
+    stack: z.array(z.string()),
+    topLevelDirs: z.array(z.string()),
+  }),
+  criticalPaths: OnboardingRankedList,
+  readingPath: OnboardingRankedList,
+  runLocally: z.object({
+    commands: z.array(OnboardingCommand),
+    envVars: z.array(z.string()),
+  }),
+  firstTasks: z.array(OnboardingFirstTask).max(3).nullable(),
+  index: z.object({
+    filesIndexed: z.number().int(),
+    filesSkipped: z.number().int(),
+    status: z.enum(['full', 'partial', 'degraded', 'failed']),
+    indexedSha: z.string(), // '' for a no-data index
+    indexUpdatedAt: z.string(),
+  }),
+  generatedAt: z.string().nullable(), // null for a skeleton
 });
-export type Onboarding = z.infer<typeof Onboarding>;
+export type OnboardingTour = z.infer<typeof OnboardingTour>;
+
+export const OnboardingGeneration = z.object({
+  id: z.string().uuid(),
+  status: z.enum(['running', 'succeeded', 'failed']),
+  phase: z.enum(['indexing', 'generating']).nullable(),
+  reason: OnboardingReason.nullable(),
+  startedAt: z.string(),
+  finishedAt: z.string().nullable(),
+});
+export type OnboardingGeneration = z.infer<typeof OnboardingGeneration>;
+
+export const OnboardingTourState = z.object({
+  cloned: z.boolean(),
+  repoIntelEnabled: z.boolean(),
+  indexing: z.boolean(),
+  tour: OnboardingTour.nullable(),
+  skeleton: OnboardingTour.nullable(),
+  latestGeneration: OnboardingGeneration.nullable(),
+  stale: z.boolean(),
+});
+export type OnboardingTourState = z.infer<typeof OnboardingTourState>;
+
+export const GenerateOnboardingResponse = z.object({
+  generation: OnboardingGeneration,
+});
+export type GenerateOnboardingResponse = z.infer<typeof GenerateOnboardingResponse>;
 
 // ---- Eval ----
 export const EvalPerTrace = z.object({

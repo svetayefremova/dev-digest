@@ -6,10 +6,16 @@ import remarkGfm from "remark-gfm";
 export function Markdown({
   children,
   skipHtml,
+  disallowedElements,
+  unwrapDisallowed,
 }: {
   children?: string | null;
   /** Drop raw HTML nodes instead of rendering them (forwarded to react-markdown). */
   skipHtml?: boolean;
+  /** Element names to drop (forwarded to react-markdown), e.g. ["img", "a"]. */
+  disallowedElements?: string[];
+  /** Keep the children of dropped elements as plain content instead of removing them. */
+  unwrapDisallowed?: boolean;
 }) {
   if (!children) return null;
   return (
@@ -17,6 +23,8 @@ export function Markdown({
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         skipHtml={skipHtml}
+        disallowedElements={disallowedElements}
+        unwrapDisallowed={unwrapDisallowed}
         components={{
           p: ({ children }) => <p style={{ margin: "0 0 10px" }}>{children}</p>,
           strong: ({ children }) => (
