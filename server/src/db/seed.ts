@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { createDb, type Db } from './client.js';
 import * as t from './schema.js';
+import { DEMO_PR_FILES } from './seed-demo-pr.js';
 import { eq, and } from 'drizzle-orm';
 import {
   GENERAL_REVIEWER_PROMPT,
@@ -117,13 +118,8 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
       })
       .returning();
 
-    // pr_files (subset)
-    await db.insert(t.prFiles).values([
-      { prId: pr!.id, path: 'src/middleware/ratelimit.ts', additions: 84, deletions: 0 },
-      { prId: pr!.id, path: 'src/api/public/webhooks.ts', additions: 31, deletions: 6 },
-      { prId: pr!.id, path: 'src/config.ts', additions: 4, deletions: 0 },
-      { prId: pr!.id, path: 'src/api/users.ts', additions: 7, deletions: 2 },
-    ]);
+    // pr_files with patches (see seed-demo-pr.ts)
+    await db.insert(t.prFiles).values(DEMO_PR_FILES.map((f) => ({ prId: pr!.id, ...f })));
 
     // pr_commits
     await db.insert(t.prCommits).values({
@@ -174,6 +170,14 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
         confidence: 0.86,
       },
     ]);
+  }
+
+  // Backfill: DBs seeded before the demo files had patches get them once, so
+  // the Files changed tab renders offline. Only patch-less rows are replaced.
+  const existingFiles = await db.select().from(t.prFiles).where(eq(t.prFiles.prId, pr!.id));
+  if (existingFiles.length > 0 && existingFiles.every((f) => f.patch == null)) {
+    await db.delete(t.prFiles).where(eq(t.prFiles.prId, pr!.id));
+    await db.insert(t.prFiles).values(DEMO_PR_FILES.map((f) => ({ prId: pr!.id, ...f })));
   }
 
   // ---- built-in agents (the starter presets) ----

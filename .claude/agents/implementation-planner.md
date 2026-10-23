@@ -153,6 +153,7 @@ Check every step against these constraints, and record each relevant one in `Con
 - **DB changes** go through a Drizzle schema change plus `npm run db:generate`. Never plan a `db:migrate` against the shared dev Postgres (`server/INSIGHTS.md`).
 - **mcp is HTTP-only.** `mcp/` reaches the server over HTTP and imports `@devdigest/shared` with `import type` only (`mcp/CLAUDE.md`). It resolves the contracts from `server/src/vendor/shared`, so a shared-contract change also needs the mcp typecheck row in `## Verification`.
 - **Tests follow `TESTING.md`, and `test-writer` writes all of them.** The implementer never writes tests (hook-enforced). Steps own production files only. Every test goes into the plan's `## Tests` table as a behaviour-level scenario that `test-writer` implements after the code. Integration tests are `*.it.test.ts` (real Postgres via Testcontainers). The outside world is mocked via `server/src/adapters/mocks.ts`. One happy path plus the edge case that matters, not exhaustive coverage.
+- **Every new or changed DB-backed route gets an integration row in `## Tests`** — reads count, not only schema changes ("one real integration per data-backed workflow", `TESTING.md`): the happy path through real Postgres, the 404 for an unknown id, and the route added to `server/test/workspace-isolation.it.test.ts`. A new client screen or tab container gets an RTL row with its data hooks mocked. `test-writer` writes them; they are `## Tests` rows, not steps.
 
 ## Step 8 — Design the execution
 
