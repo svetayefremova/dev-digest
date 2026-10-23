@@ -13,7 +13,7 @@
  * raw-SQL probes below MUST swallow `undefined_table` (Postgres 42P01) so the
  * facade keeps returning degraded — never throws.
  */
-import { and, asc, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, isNotNull, or, sql } from 'drizzle-orm';
 import type { Db } from '../../db/client.js';
 import * as t from '../../db/schema.js';
 import { clampIndexedName } from '../../db/schema/context.js';
@@ -456,6 +456,65 @@ export class RepoIntelRepository {
       .where(eq(t.fileRank.repoId, repoId))
       .orderBy(desc(t.fileRank.rank))
       .limit(limit);
+  }
+
+  /** Every `file_rank` row (path, pagerank, hotness) for a repo. */
+  async getRankRows(
+    repoId: string,
+  ): Promise<Array<{ path: string; pagerank: number; hotness: number }>> {
+    return this.db
+      .select({
+        path: t.fileRank.filePath,
+        pagerank: t.fileRank.pagerank,
+        hotness: t.fileRank.hotness,
+      })
+      .from(t.fileRank)
+      .where(eq(t.fileRank.repoId, repoId));
+  }
+
+  /** Distinct file paths that declare at least one symbol. */
+  async getSymbolPaths(repoId: string): Promise<string[]> {
+    const rows = await this.db
+      .selectDistinct({ path: t.symbols.path })
+      .from(t.symbols)
+      .where(eq(t.symbols.repoId, repoId));
+    return rows.map((r) => r.path);
+  }
+
+  /** HTTP endpoint count per file, from the precomputed `file_facts`. */
+  async countEndpointsByFile(repoId: string): Promise<Record<string, number>> {
+    const rows = await this.db
+      .select({ filePath: t.fileFacts.filePath, endpoints: t.fileFacts.endpoints })
+      .from(t.fileFacts)
+      .where(eq(t.fileFacts.repoId, repoId));
+    const out: Record<string, number> = {};
+    for (const r of rows) {
+      const n = Array.isArray(r.endpoints) ? r.endpoints.length : 0;
+      if (n > 0) out[r.filePath] = n;
+    }
+    return out;
+  }
+
+  /**
+   * Is an index-family job for the repo queued (scheduled after `since`) or
+   * running (started after `since`)? Older rows count as orphaned.
+   */
+  async hasRecentActiveIndexJob(repoId: string, kinds: string[], since: Date): Promise<boolean> {
+    const [row] = await this.db
+      .select({ id: t.jobs.id })
+      .from(t.jobs)
+      .where(
+        and(
+          inArray(t.jobs.kind, kinds),
+          sql`${t.jobs.payload}->>'repoId' = ${repoId}`,
+          or(
+            and(eq(t.jobs.status, 'queued'), gt(t.jobs.scheduledAt, since)),
+            and(eq(t.jobs.status, 'running'), gt(t.jobs.startedAt, since)),
+          ),
+        ),
+      )
+      .limit(1);
+    return !!row;
   }
 
   /** Repo-map candidates: symbols with a signature, joined to rank, ordered. */

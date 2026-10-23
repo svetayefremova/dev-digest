@@ -9,7 +9,9 @@ import {
   vector,
   index,
   uniqueIndex,
+  check,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { workspaces } from './core';
 import { repos } from './repos';
 
@@ -124,3 +126,34 @@ export const onboarding = pgTable('onboarding', {
   json: jsonb('json').notNull(),
   generatedAt: timestamp('generated_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const onboardingGenerations = pgTable(
+  'onboarding_generations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    repoId: uuid('repo_id')
+      .notNull()
+      .references(() => repos.id, { onDelete: 'cascade' }),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    status: text('status', { enum: ['running', 'succeeded', 'failed'] })
+      .notNull()
+      .default('running'),
+    phase: text('phase', { enum: ['indexing', 'generating'] }),
+    reason: text('reason'),
+    model: text('model'),
+    tokensIn: integer('tokens_in'),
+    tokensOut: integer('tokens_out'),
+    durationMs: integer('duration_ms'),
+    startedAt: timestamp('started_at', { withTimezone: true }).defaultNow().notNull(),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+  },
+  (t) => ({
+    oneRunning: uniqueIndex('onboarding_generations_one_running_idx')
+      .on(t.repoId)
+      .where(sql`status = 'running'`),
+    byRepoStarted: index('onboarding_generations_repo_started_idx').on(t.repoId, t.startedAt),
+    statusCk: check('onboarding_generations_status_ck', sql`status in ('running','succeeded','failed')`),
+  }),
+);

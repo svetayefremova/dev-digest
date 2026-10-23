@@ -93,9 +93,9 @@ Designs: `specs/onboarding/designs/onboarding-tour.png` (the full tour) and `spe
 - AC-34 — WHILE a generation for a repo is running, the tour API shall not start a second one from another request or tab and shall return the running generation instead. — covers: US-4, US-6 — priority: must — verify: integration
 - AC-35 — IF a regeneration fails, THEN the page shall keep the previous successful tour and show the failure reason in a banner. — covers: US-3, US-4 — priority: must — verify: integration
 - AC-36 — The tour API shall return the persisted tour of a repo only to members of the repo's workspace and shall respond 404 for a repo id of another workspace. — covers: US-5 — priority: must — verify: integration
-- AC-37 — WHEN the index was updated after the tour was generated, the page shall show "The index changed since this tour was generated" with a Regenerate action. — covers: US-3 — priority: should — verify: unit
+- AC-37 — WHEN the repository's indexed commit differs from the commit the tour was generated from, the page shall show "The index changed since this tour was generated" with a Regenerate action. — covers: US-3 — priority: should — verify: unit
 - AC-38 — WHEN a user reopens the page for a repo with a persisted tour, the page shall show it without making a model call. — covers: US-6 — priority: must — verify: integration
-- AC-39 — WHEN the user opens the page for a repo with no persisted tour, the page shall show an empty state with an icon tile, the title "Generate onboarding tour", the body "DevDigest indexes the repo and writes a guided tour: architecture, critical paths, how to run, a reading order, and first tasks. Takes 30–60s and ~5,000 tokens." and one button "+ Generate onboarding tour", and shall start no model call until the user clicks it. — covers: US-6 — priority: must — verify: unit
+- AC-39 — WHEN the user opens the page for a repo with no persisted tour, the page shall show an empty state with an icon tile, the title "Generate onboarding tour", the body "DevDigest indexes the repo and writes a guided tour: architecture, critical paths, how to run, a reading order, and first tasks. Takes 30–60s and ~5,000 tokens." and one button labelled "Generate onboarding tour" with a plus icon, with no model call started until the user clicks it. — covers: US-6 — priority: must — verify: unit
 - AC-40 — The tour API shall reject a new generation for a repo within 60 seconds of the previous one starting. — covers: US-6 — priority: should — verify: integration — assumed default — confirm
 
 ### Actions on content
@@ -108,8 +108,8 @@ Designs: `specs/onboarding/designs/onboarding-tour.png` (the full tour) and `spe
 ### Added in round 2
 - AC-46 — WHEN the user clicks Generate and the repo has a local checkout but no index, the tour API shall request an index build and start the model call only after the index finishes, and the page shall show "Indexing in progress" meanwhile. — covers: US-3, US-6 — priority: must — verify: integration
 - AC-47 — WHEN the user clicks Generate or Regenerate and an index exists, the tour API shall generate from the current index without re-indexing, and the page shall offer "Re-analyze" when the index is stale. — covers: US-3 — priority: should — verify: integration
-- AC-48 — WHEN the page is opened with a section anchor in its URL, the page shall scroll to that section and expand it. — covers: US-1 — priority: should — verify: unit
-- AC-49 — The tour page shall not show a "Share link" control and shall show the breadcrumb "{owner/name} > Onboarding Tour" in the top bar. — covers: US-1 — priority: should — verify: unit
+- AC-48 — WHEN the page is opened with a section anchor in its URL (the anchor is the section key, for example `#critical_paths`), the page shall scroll to that section and expand it. — covers: US-1 — priority: should — verify: unit
+- AC-49 — The tour page shall show the breadcrumb "Workspace > Onboarding Tour" in the top bar, the same pattern as the other Workspace pages, with no "Share link" control. — covers: US-1 — priority: should — verify: unit
 - AC-50 — WHEN the user activates an item in the "ON THIS PAGE" list by click or keyboard, the page shall scroll that section into view and, IF the section is collapsed, expand it. — covers: US-1 — priority: must — verify: unit
 - AC-51 — WHEN a generation runs, the tour API shall take the first tasks from the same single model call as the other sections, as up to 3 newcomer-sized tasks each with a short title and one target path that is a file or a directory, and shall drop every task whose path is not an indexed file or does not contain at least one indexed file. — covers: US-1, US-2 — priority: must — verify: integration
 - AC-52 — The "First tasks" cards shall be informational only, with no Open button and no click action. — covers: US-1 — priority: should — verify: unit
@@ -227,9 +227,9 @@ INSIGHTS applied: client/INSIGHTS.md — client must use `import type` only from
 | AC-34 | US-4, US-6 | corner case | integration | Two POSTs within 1 s → second returns the running generation, one model call |
 | AC-35 | US-3, US-4 | corner case | integration | Regenerate with failing provider → previous tour still served, failure reason shown |
 | AC-36 | US-5 | threat checklist IDOR | integration | GET with another workspace's repo id → 404 |
-| AC-37 | US-3 | topic staleness | unit | Index updatedAt later than generatedAt → stale notice with Regenerate |
+| AC-37 | US-3 | topic staleness | unit | Tour generated at commit abc; index re-run at the same commit abc (timestamp moved) → no notice; index at commit def → notice with Regenerate |
 | AC-38 | US-6 | `context.ts:120` persistence | integration | Persisted tour, GET twice → same body, zero model calls |
-| AC-39 | US-6 | Q1 → resolved; design onboarding-tour-empty.png | unit | No tour persisted → empty state with title, body and "+ Generate onboarding tour"; no call until click |
+| AC-39 | US-6 | Q1 → resolved; design onboarding-tour-empty.png | unit | No tour persisted → empty state with title, body and a button labelled "Generate onboarding tour" with a plus icon (label text has no "+"); no call until click |
 | AC-40 | US-6 | assumed default | integration | Second generate 10 s after first → rejected |
 | AC-41 | — | (removed) Q2 | — | — |
 | AC-42 | US-1 | design Open; assumed default | unit | Click Open → anchor to GitHub blob at indexed SHA, `target=_blank`, `rel=noopener` |
@@ -238,8 +238,8 @@ INSIGHTS applied: client/INSIGHTS.md — client must use `import type` only from
 | AC-45 | US-4 | NFR accessibility | unit | Generation completes → live-region announcement, focus on Regenerate |
 | AC-46 | US-3, US-6 | round-2 decision; `service.ts:189-205` (no_data) | integration | Repo with checkout and no index, POST generate → index requested, model not called until index state is full/partial |
 | AC-47 | US-3 | round-2 decision | integration | Index exists but stale, Regenerate → no re-index, model called on current index; Re-analyze offered |
-| AC-48 | US-1 | accepted UX proposal 3 | unit | Open URL with `#critical-paths` anchor → section scrolled into view and expanded |
-| AC-49 | US-1 | Q2; design top bar of onboarding-tour-empty.png | unit | Page has no Share link control; breadcrumb "acme/payments-api > Onboarding Tour" |
+| AC-48 | US-1 | accepted UX proposal 3 | unit | Open URL with `#critical_paths` anchor (section key, underscore) → section scrolled into view and expanded |
+| AC-49 | US-1 | Q2; design top bar of onboarding-tour-empty.png | unit | Page has no Share link control; breadcrumb "Workspace > Onboarding Tour" (same pattern as Project Context and Pull Requests) |
 | AC-50 | US-1 | user amendment (TOC click); design "ON THIS PAGE" list; consistent with AC-9, AC-48 | unit | Collapse "First tasks", click or press Enter on its TOC item → section scrolled into view and expanded |
 | AC-51 | US-1, US-2 | first-tasks decision; design "First tasks" cards; AC-14 grounding | integration | Stub returns 4 tasks incl. a nonexistent path and a directory `specs/` with indexed files → only grounded tasks (max 3) returned; one model call |
 | AC-52 | US-1 | first-tasks decision; design cards (no Open button) | unit | Render First tasks → no Open button; clicking a card changes nothing |
@@ -276,7 +276,7 @@ Coverage:
 
 ## Open questions
 Q6 is resolved. The decided values Q5 and Q7–Q13 are written into the ACs below and are confirmed by the user at the approval gate.
-- Q1 → resolved: explicit "+ Generate onboarding tour" button on an empty state; no generation without the click → AC-39. Decision (not a question): Generate on an unindexed repo with a checkout awaits an index build first (AC-46); with an existing index it generates from it without re-indexing and offers Re-analyze when stale (AC-47).
+- Q1 → resolved: explicit "Generate onboarding tour" button (with a plus icon) on an empty state; no generation without the click → AC-39. Decision (not a question): Generate on an unindexed repo with a checkout awaits an index build first (AC-46); with an existing index it generates from it without re-indexing and offers Re-analyze when stale (AC-47).
 - Q2 → resolved: Share link removed from scope → AC-41 (removed), Non-goals, AC-49
 - Q3 → resolved: generate; header shows "indexed N of M files" (M = indexed + skipped) with a Partial index notice → AC-7
 - Q4 → resolved: Project Context documents are not tour input → Non-goals

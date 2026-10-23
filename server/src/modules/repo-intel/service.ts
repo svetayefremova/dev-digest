@@ -41,16 +41,19 @@ import type {
   RepoMapResult,
   SignatureRow,
   SymbolRow,
+  TourIndexFacts,
 } from './types.js';
 import {
   BFS_DEPTH,
   DEFAULT_REPO_MAP_TOKEN_BUDGET,
   INDEX_JOB_KIND,
+  INDEX_JOB_WINDOW_MS,
   INDEXER_VERSION,
   MAX_CALLERS_PER_SYMBOL,
   REFRESH_JOB_KIND,
   RESYNC_JOB_KIND,
   SUPPORTED_EXT,
+  isJunkPath,
 } from './constants.js';
 import { runFullIndex, type IndexPayload } from './pipeline/full.js';
 import { runIncremental } from './pipeline/incremental.js';
@@ -655,6 +658,51 @@ export class RepoIntelService implements RepoIntel {
     return out;
   }
 
+  /** True while an index/refresh/resync job for the repo is queued or running (time-bounded). */
+  async isIndexing(repoId: string): Promise<boolean> {
+    return this.repo.hasRecentActiveIndexJob(
+      repoId,
+      [INDEX_JOB_KIND, REFRESH_JOB_KIND, RESYNC_JOB_KIND],
+      new Date(Date.now() - INDEX_JOB_WINDOW_MS),
+    );
+  }
+
+  /** Enqueue a first index build; `done` settles when the job finishes. */
+  async requestIndexBuild(workspaceId: string, repoId: string): Promise<{ done: Promise<void> }> {
+    const job = await this.container.jobs.enqueue(workspaceId, INDEX_JOB_KIND, { repoId });
+    return { done: job.done };
+  }
+
+  /** Deterministic facts for the onboarding tour. Empty when the flag is off. */
+  async getTourFacts(repoId: string): Promise<TourIndexFacts> {
+    if (!this.container.config.repoIntelEnabled) {
+      return { ranked: [], indexedPaths: [], importers: {}, endpoints: {}, criticalPathFiles: [] };
+    }
+    const [ranked, symbolPaths, edges, endpoints, chains] = await Promise.all([
+      this.repo.getRankRows(repoId),
+      this.repo.getSymbolPaths(repoId),
+      this.repo.getEdges(repoId),
+      this.repo.countEndpointsByFile(repoId),
+      this.getCriticalPaths(repoId),
+    ]);
+    const indexedPaths = [...new Set([...ranked.map((r) => r.path), ...symbolPaths])];
+    const importerSets = new Map<string, Set<string>>();
+    for (const e of edges) {
+      const set = importerSets.get(e.toFile);
+      if (set) set.add(e.fromFile);
+      else importerSets.set(e.toFile, new Set([e.fromFile]));
+    }
+    const importers: Record<string, number> = {};
+    for (const [file, set] of importerSets) importers[file] = set.size;
+    return {
+      ranked,
+      indexedPaths,
+      importers,
+      endpoints,
+      criticalPathFiles: [...new Set(chains.flat())],
+    };
+  }
+
   /**
    * Dependency chains from the highest-ranked files (onboarding reading-path).
    * For each of the top roots, greedily follow the highest-ranked import target
@@ -704,33 +752,6 @@ export class RepoIntelService implements RepoIntel {
 
 /** How many top-ranked files seed `getCriticalPaths` dependency chains. */
 const CRITICAL_PATH_ROOTS = 5;
-
-/**
- * Path kinds excluded from rank-driven file samples (conventions/onboarding):
- * tests, configs, declaration files, migrations, generated dirs. Substring
- * match on the repo-relative path (kept deliberately simple + deterministic).
- */
-const JUNK_PATH_PATTERNS = [
-  '.test.',
-  '.spec.',
-  '.d.ts',
-  '__tests__/',
-  '__mocks__/',
-  '/test/',
-  '/tests/',
-  '/migrations/',
-  '/__fixtures__/',
-  '.config.',
-  'vitest.',
-  'jest.',
-  'eslint',
-  'prettier',
-] as const;
-
-function isJunkPath(path: string): boolean {
-  const lower = path.toLowerCase();
-  return JUNK_PATH_PATTERNS.some((p) => lower.includes(p));
-}
 
 /** Enclosing top-level (bare-name) symbol for a line, from persistent rows. */
 function enclosingFromRows(rows: FullSymbolRow[], line: number): string | null {

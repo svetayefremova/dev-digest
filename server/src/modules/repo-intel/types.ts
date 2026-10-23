@@ -129,6 +129,18 @@ export interface RepoMapResult {
   reason?: DegradedReason;
 }
 
+/** Deterministic facts the onboarding tour is built from (no model involved). */
+export interface TourIndexFacts {
+  ranked: Array<{ path: string; pagerank: number; hotness: number }>;
+  /** Rank paths ∪ symbol paths (partial indexes skip the rank step). */
+  indexedPaths: string[];
+  /** Distinct importer count per imported file. */
+  importers: Record<string, number>;
+  /** HTTP endpoint count per file. */
+  endpoints: Record<string, number>;
+  criticalPathFiles: string[];
+}
+
 /**
  * The facade. Studio (T2+) serves reads purely from the Postgres cache; T1 and
  * CI may parse diff-scoped on the hot path. Indexing runs through
@@ -169,4 +181,11 @@ export interface RepoIntel {
     opts?: { exclude?: string[] },
   ): Promise<string[]>;
   getCriticalPaths(repoId: string): Promise<string[][]>;
+
+  // --- Onboarding tour ----------------------------------------------------
+  getTourFacts(repoId: string): Promise<TourIndexFacts>;
+  /** True while an index/refresh/resync job for the repo is queued or running (time-bounded). */
+  isIndexing(repoId: string): Promise<boolean>;
+  /** Enqueue a first index build; `done` settles when the job finishes. */
+  requestIndexBuild(workspaceId: string, repoId: string): Promise<{ done: Promise<void> }>;
 }

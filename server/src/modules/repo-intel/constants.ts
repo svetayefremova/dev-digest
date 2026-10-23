@@ -9,6 +9,14 @@ export const REFRESH_JOB_KIND = 'repo-intel-refresh';
 /** Manual "re-analyze": fetch latest from origin + incremental reindex. */
 export const RESYNC_JOB_KIND = 'repo-intel-resync';
 
+/**
+ * A queued/running index job older than this is treated as orphaned (JobRunner is
+ * in-memory; rows are never reset after a restart). Derived from the JobRunner
+ * defaults `timeoutMs = 120_000` and `retries = 2` (`platform/jobs.ts:40-41`)
+ * plus a 60 s margin.
+ */
+export const INDEX_JOB_WINDOW_MS = 120_000 * (2 + 1) + 60_000;
+
 // --- Walk / parse scope -----------------------------------------------------
 /** [T1] Files we parse (diff-scoped in T1; whole walk in T2). */
 export const SUPPORTED_EXT = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'] as const;
@@ -51,3 +59,30 @@ export const HOTNESS_WINDOW_DAYS = 180;
 export const DEFAULT_REPO_MAP_TOKEN_BUDGET = 1500;
 /** Signatures are trimmed to this many chars in the parse phase (cache stability). */
 export const MAX_SIGNATURE_CHARS = 120;
+
+/**
+ * Path kinds excluded from rank-driven file samples (conventions/onboarding):
+ * tests, configs, declaration files, migrations, generated dirs. Substring
+ * match on the repo-relative path (kept deliberately simple + deterministic).
+ */
+const JUNK_PATH_PATTERNS = [
+  '.test.',
+  '.spec.',
+  '.d.ts',
+  '__tests__/',
+  '__mocks__/',
+  '/test/',
+  '/tests/',
+  '/migrations/',
+  '/__fixtures__/',
+  '.config.',
+  'vitest.',
+  'jest.',
+  'eslint',
+  'prettier',
+] as const;
+
+export function isJunkPath(path: string): boolean {
+  const lower = path.toLowerCase();
+  return JUNK_PATH_PATTERNS.some((p) => lower.includes(p));
+}

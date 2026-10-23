@@ -8,7 +8,7 @@ import {
   PrHistory,
   SmartDiff,
   Conformance,
-  Onboarding,
+  OnboardingTour,
   EvalRun,
   MemoryItem,
   RunTrace,
@@ -117,18 +117,13 @@ describe('AI contracts parse fixtures', () => {
     expect(d.groups[0]!.role).toBe('core');
   });
 
-  it('Conformance / Onboarding / EvalRun / MemoryItem', () => {
+  it('Conformance / EvalRun / MemoryItem', () => {
     expect(() =>
       Conformance.parse({
         spec_id: 's1',
         spec_title: 'Spec',
         items: [{ requirement: 'r', status: 'implemented' }],
         completeness_pct: 80,
-      }),
-    ).not.toThrow();
-    expect(() =>
-      Onboarding.parse({
-        sections: [{ kind: 'architecture', title: 'T', body: 'b', links: [] }],
       }),
     ).not.toThrow();
     expect(() =>
@@ -166,6 +161,54 @@ describe('AI contracts parse fixtures', () => {
       log: [{ t: '00.00', kind: 'info', msg: 'started' }],
     });
     expect(trace.tool_calls).toHaveLength(1);
+  });
+});
+
+describe('OnboardingTour contract', () => {
+  const entry = (i: number) => ({
+    path: `src/f${i}.ts`,
+    rank: 0.1,
+    importers: 1,
+    endpoints: 0,
+    reason: null,
+  });
+  const task = (i: number) => ({
+    title: `Task ${i}`,
+    path: `src/f${i}.ts`,
+    isDirectory: false,
+    importers: 1,
+    complexity: 'low' as const,
+  });
+  const tour = (over: Record<string, unknown> = {}) => ({
+    mode: 'skeleton',
+    reason: 'ai_unavailable',
+    architecture: { summary: null, diagram: null, stack: ['TypeScript'], topLevelDirs: ['src'] },
+    criticalPaths: { entries: [entry(1)], truncated: false },
+    readingPath: { entries: [entry(1)], truncated: false },
+    runLocally: { commands: [], envVars: [] },
+    firstTasks: null,
+    index: { filesIndexed: 4800, filesSkipped: 0, status: 'full', indexedSha: 'abc', indexUpdatedAt: '2026-10-22T10:00:00Z' },
+    generatedAt: null,
+    ...over,
+  });
+
+  it('SPEC-02 AC-8: accepts a skeleton (firstTasks null, generatedAt null) and a generated tour', () => {
+    expect(OnboardingTour.parse(tour()).firstTasks).toBeNull();
+    const generated = OnboardingTour.parse(
+      tour({ mode: 'generated', reason: null, firstTasks: [task(1)], generatedAt: '2026-10-22T10:05:00Z' }),
+    );
+    expect(generated.firstTasks).toHaveLength(1);
+    expect(generated.generatedAt).toBe('2026-10-22T10:05:00Z');
+  });
+
+  it('SPEC-02 AC-13: accepts exactly 25 entries and 3 tasks, rejects 26 entries and 4 tasks', () => {
+    const list = (n: number) => ({ entries: Array.from({ length: n }, (_, i) => entry(i)), truncated: n > 25 });
+    expect(OnboardingTour.safeParse(tour({ criticalPaths: list(25), readingPath: list(25) })).success).toBe(true);
+    expect(OnboardingTour.safeParse(tour({ criticalPaths: list(26) })).success).toBe(false);
+    expect(OnboardingTour.safeParse(tour({ readingPath: list(26) })).success).toBe(false);
+    const tasks = (n: number) => Array.from({ length: n }, (_, i) => task(i));
+    expect(OnboardingTour.safeParse(tour({ firstTasks: tasks(3) })).success).toBe(true);
+    expect(OnboardingTour.safeParse(tour({ firstTasks: tasks(4) })).success).toBe(false);
   });
 });
 

